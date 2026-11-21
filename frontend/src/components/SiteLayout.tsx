@@ -94,25 +94,29 @@ export function SiteLayout() {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              aria-label={searchOpen ? "Close search" : "Search products"}
-              aria-expanded={searchOpen}
-              onClick={() => setSearchOpen((open) => !open)}
-            >
-              {searchOpen ? <X size={18} /> : <Search size={18} />}
-            </Button>
-            <Button asChild size="icon" variant="ghost" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`}>
-              <Link to="/wishlist" onClick={closeMenus}>
-                <Heart size={18} />
-                {wishlistCount > 0 && <span className="sr-only">{wishlistCount} saved</span>}
-                {wishlistQuery.error && (
-                  <span className="sr-only">Wishlist could not be loaded</span>
-                )}
-              </Link>
-            </Button>
+            <div className="hidden min-[400px]:block">
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={searchOpen ? "Close search" : "Search products"}
+                aria-expanded={searchOpen}
+                onClick={() => setSearchOpen((open) => !open)}
+              >
+                {searchOpen ? <X size={18} /> : <Search size={18} />}
+              </Button>
+            </div>
+            <div className="hidden sm:block">
+              <Button asChild size="icon" variant="ghost" aria-label={`Wishlist${wishlistCount ? `, ${wishlistCount} items` : ""}`}>
+                <Link to="/wishlist" onClick={closeMenus}>
+                  <Heart size={18} />
+                  {wishlistCount > 0 && <span className="sr-only">{wishlistCount} saved</span>}
+                  {wishlistQuery.error && (
+                    <span className="sr-only">Wishlist could not be loaded</span>
+                  )}
+                </Link>
+              </Button>
+            </div>
             <Button asChild size="icon" variant="ghost" aria-label={`Cart${cartCount ? `, ${cartCount} items` : ""}`}>
               <Link to="/cart" onClick={closeMenus} className="relative">
                 <ShoppingCart size={18} />
@@ -143,6 +147,7 @@ export function SiteLayout() {
                       <>
                         <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/products" onClick={closeMenus}>Product Management</Link>
                         <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/categories" onClick={closeMenus}><FolderTree size={14} className="mr-2 inline" />Categories</Link>
+                        <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/deliveries" onClick={closeMenus}><ShoppingBag size={14} className="mr-2 inline" />Delivery Management</Link>
                       </>
                     )}
                     <button className="flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50" onClick={handleSignOut}>
@@ -153,15 +158,19 @@ export function SiteLayout() {
               </>
             ) : (
               <>
-                <Button asChild size="sm" variant="ghost" className="hidden sm:inline-flex">
-                  <Link to="/login">Sign in</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link className="hidden sm:inline-flex" to="/register">Join us</Link>
-                </Button>
-                <Button asChild size="icon" variant="ghost" className="sm:hidden" aria-label="Sign in">
-                  <Link to="/login"><UserRound size={18} /></Link>
-                </Button>
+                <div className="hidden items-center gap-1.5 sm:flex">
+                  <Button asChild size="sm" variant="ghost">
+                    <Link to="/login">Sign in</Link>
+                  </Button>
+                  <Button asChild size="sm">
+                    <Link to="/register">Join us</Link>
+                  </Button>
+                </div>
+                <div className="hidden min-[340px]:block sm:hidden">
+                  <Button asChild size="icon" variant="ghost" aria-label="Sign in">
+                    <Link to="/login"><UserRound size={18} /></Link>
+                  </Button>
+                </div>
               </>
             )}
             <Button
@@ -198,6 +207,17 @@ export function SiteLayout() {
           <nav className="grid gap-1 border-t border-border/70 bg-background px-5 py-3 lg:hidden" aria-label="Mobile navigation">
             <NavLink className={navClass} to="/" onClick={closeMenus}>Home</NavLink>
             <NavLink className={navClass} to="/shop" onClick={closeMenus}>Shop</NavLink>
+            <button
+              type="button"
+              className="text-left text-sm font-medium text-muted-foreground hover:text-primary"
+              onClick={() => {
+                setSearchOpen(true);
+                setMobileOpen(false);
+              }}
+            >
+              Search products
+            </button>
+            <Link className={navClass({ isActive: false })} to="/wishlist" onClick={closeMenus}>Wishlist</Link>
             <Link className={navClass({ isActive: false })} to="/#categories" onClick={closeMenus}>Categories</Link>
             <Link className={navClass({ isActive: false })} to="/#about" onClick={closeMenus}>About</Link>
             <Link className={navClass({ isActive: false })} to="/#contact" onClick={closeMenus}>Contact</Link>
@@ -205,6 +225,9 @@ export function SiteLayout() {
               <>
                 <Link className={navClass({ isActive: false })} to={dashboardPath} onClick={closeMenus}>My Dashboard</Link>
                 <Link className={navClass({ isActive: false })} to="/orders" onClick={closeMenus}>My Orders</Link>
+                {account?.roles.includes("delivery_staff") && (
+                  <Link className={navClass({ isActive: false })} to="/delivery/dashboard" onClick={closeMenus}>Delivery dashboard</Link>
+                )}
               </>
             ) : (
               <>

@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { RequireAdmin, RequireAuth, RequireDashboardRole } from "@/auth/RouteGuards";
 import { SiteLayout } from "@/components/SiteLayout";
+import { isRateLimitedError } from "@/lib/api";
 
 const HomePage = lazy(() =>
   import("@/pages/HomePage").then((module) => ({ default: module.HomePage })),
@@ -50,6 +51,16 @@ const StaffWorkspacePage = lazy(() =>
     default: module.StaffWorkspacePage,
   })),
 );
+const AdminDeliveryPage = lazy(() =>
+  import("@/pages/DeliveryPages").then((module) => ({
+    default: module.AdminDeliveryPage,
+  })),
+);
+const DeliveryDashboardPage = lazy(() =>
+  import("@/pages/DeliveryPages").then((module) => ({
+    default: module.DeliveryDashboardPage,
+  })),
+);
 const AdminCategoriesPage = lazy(() =>
   import("@/pages/AdminCategoriesPage").then((module) => ({
     default: module.AdminCategoriesPage,
@@ -84,6 +95,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 10_000,
+      retry: (failureCount, error) =>
+        !isRateLimitedError(error) && failureCount < 3,
     },
   },
 });
@@ -114,7 +127,9 @@ export default function App() {
                 <Route path="terms" element={<TermsPage />} />
                 <Route element={<RequireAuth />}>
                   <Route path="account" element={<AccountPage />} />
-                  <Route path="account/dashboard" element={<CustomerDashboardPage />} />
+                  <Route element={<RequireDashboardRole allowedRoles={["customer"]} />}>
+                    <Route path="account/dashboard" element={<CustomerDashboardPage />} />
+                  </Route>
                   <Route path="cart" element={<CartPage />} />
                   <Route path="wishlist" element={<WishlistPage />} />
                   <Route path="orders" element={<OrdersPage />} />
@@ -124,14 +139,17 @@ export default function App() {
                     <Route path="admin/products" element={<AdminProductsPage />} />
                     <Route path="admin/categories" element={<AdminCategoriesPage />} />
                   </Route>
+                  <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "delivery_manager"]} />}>
+                    <Route path="admin/deliveries" element={<AdminDeliveryPage />} />
+                  </Route>
                   <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "inventory_manager"]} />}>
                     <Route path="admin/inventory" element={<StaffWorkspacePage />} />
                   </Route>
                   <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "order_manager"]} />}>
                     <Route path="admin/orders" element={<StaffWorkspacePage />} />
                   </Route>
-                  <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "delivery_manager", "delivery_staff"]} />}>
-                    <Route path="admin/deliveries" element={<StaffWorkspacePage />} />
+                  <Route element={<RequireDashboardRole allowedRoles={["delivery_staff"]} />}>
+                    <Route path="delivery/dashboard" element={<DeliveryDashboardPage />} />
                   </Route>
                 </Route>
                 <Route

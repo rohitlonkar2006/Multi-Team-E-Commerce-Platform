@@ -30,15 +30,19 @@ export function PrivacyPage() {
         <p>
           ShopSphere stores account and profile information, saved addresses, cart and order records,
           wishlist items, and newsletter email subscriptions in the configured Supabase project.
-          Authentication is handled by Supabase Auth.
+          Delivery-partner accounts also store a service zone and license-review state. Partners may
+          upload a driving-license image or PDF for administrator review; the file is private and
+          review links expire. Delivery partners receive the contact and address details for orders
+          assigned to them. The application does not collect continuous GPS location.
         </p>
       </section>
       <section>
         <h2 className="font-semibold text-foreground">Use and protection</h2>
         <p>
-          Protected API requests use the signed-in user&apos;s access token and database Row Level
-          Security policies. Newsletter subscriptions are stored only after the visitor confirms
-          consent. No newsletter email delivery provider is configured.
+          Protected API requests use the signed-in user&apos;s access token, role checks, and database
+          Row Level Security policies. Private license files are handled by the backend and are not
+          exposed through public storage URLs. Newsletter subscriptions are stored only after the
+          visitor confirms consent. No newsletter email delivery provider is configured.
         </p>
       </section>
       <section>
@@ -71,7 +75,7 @@ export function TermsPage() {
         <p>
           Simulated UPI and card outcomes are not financial transactions. Never enter real card,
           CVV, UPI PIN, or banking credentials. Cash-on-delivery entries are also demonstration
-          records and do not create a real shipment.
+          records and delivery status updates do not create or track a real shipment.
         </p>
       </section>
       <section>

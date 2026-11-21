@@ -19,6 +19,7 @@ All teams use one Supabase project, shared UUID identifiers, published API contr
 
 ## Current ownership status
 
-- Team 1: authentication UI, verified API sessions, profile/address APIs and RLS.
+- Team 1: authentication UI, verified API sessions, profile/address APIs, role-aware dashboards, and RLS.
 - Team 2: catalogue browsing, admin product/category CRUD, image upload and stock management.
-- Teams 3 and 4: planned next phases; no payment or delivery integration is claimed yet.
+- Team 3: cart, checkout, and simulated payment implementation remains to be verified end-to-end against live Supabase.
+- Team 4: delivery partner provisioning, license review, zone-matched assignment, scoped delivery status updates, and tracking UI are implemented in code; notification UI and live migration verification remain.

@@ -35,3 +35,19 @@ export const supabase = (() => {
     },
   });
 })();
+
+export function getServiceRoleClient() {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new ApiError(
+      503,
+      "Delivery account and private license operations require SUPABASE_SERVICE_ROLE_KEY in the backend environment.",
+    );
+  }
+
+  return createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}

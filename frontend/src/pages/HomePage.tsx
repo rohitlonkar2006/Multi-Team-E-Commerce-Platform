@@ -29,10 +29,6 @@ type HealthResponse = {
   supabaseConfigured: boolean;
 };
 
-const apiUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:4000").replace(
-  /\/$/,
-  "",
-);
 const heroImage =
   "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1500&q=85";
 
@@ -45,10 +41,8 @@ const categoryImageBySlug: Record<string, string> = {
     "https://images.pexels.com/photos/934070/pexels-photo-934070.jpeg?auto=compress&cs=tinysrgb&w=900",
 };
 
-async function getApiHealth(): Promise<HealthResponse> {
-  const response = await fetch(`${apiUrl}/api/health`);
-  if (!response.ok) throw new Error(`API returned ${response.status}`);
-  return response.json() as Promise<HealthResponse>;
+function getApiHealth(): Promise<HealthResponse> {
+  return apiRequest<HealthResponse>("/health");
 }
 
 function CategoryTile({
@@ -103,8 +97,6 @@ export function HomePage() {
   const health = useQuery({
     queryKey: ["api-health"],
     queryFn: getApiHealth,
-    retry: 1,
-    refetchInterval: 15_000,
   });
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -148,7 +140,7 @@ export function HomePage() {
     <main>
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 pb-16 pt-9 sm:pt-14 lg:grid-cols-[0.88fr_1.12fr] lg:items-center lg:px-10 lg:pb-24 lg:pt-16">
-          <div className="relative z-10">
+          <div className="reveal-on-load relative z-10">
             <p className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-primary">
               <span className="size-2 rounded-full bg-primary" />
               A considered collection for everyday
@@ -177,7 +169,7 @@ export function HomePage() {
               <span className="inline-flex items-center gap-2"><PackageCheck size={16} className="text-primary" /> Live stock checks</span>
             </div>
           </div>
-          <div className="relative min-h-[340px] overflow-hidden rounded-[2rem] bg-secondary sm:min-h-[480px]">
+          <div className="reveal-on-load relative min-h-[340px] overflow-hidden rounded-[2rem] bg-secondary sm:min-h-[480px]">
             <img
               src={heroImage}
               alt="Warm, modern living room with thoughtful home details"

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { AuthContext, type AuthContextValue, type AccountResponse } from "@/auth/AuthContext";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, isRateLimitedError } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -47,7 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: () =>
       apiRequest<AccountResponse>("/auth/me", session?.access_token),
     enabled: Boolean(session?.access_token),
-    retry: 1,
+    retry: (failureCount, error) =>
+      !isRateLimitedError(error) && failureCount < 1,
   });
 
   const value = useMemo<AuthContextValue>(

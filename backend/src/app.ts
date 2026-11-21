@@ -17,6 +17,11 @@ import { cartRoutes, orderRoutes, paymentRoutes } from "./modules/checkout/route
 import { wishlistRoutes } from "./modules/wishlist/routes.js";
 import { newsletterRoutes } from "./modules/newsletter/routes.js";
 import { adminDashboardRoutes } from "./modules/admin/dashboard.js";
+import {
+  adminDeliveryRoutes,
+  deliveryOperationsRoutes,
+  deliveryStaffRoutes,
+} from "./modules/delivery/routes.js";
 
 export const app = express();
 
@@ -45,6 +50,11 @@ app.use(
     limit: 100,
     standardHeaders: "draft-8",
     legacyHeaders: false,
+    handler: (_request, response) => {
+      response
+        .status(429)
+        .json({ error: "Too many requests, please try again later." });
+    },
   }),
 );
 
@@ -64,6 +74,9 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/admin", adminDashboardRoutes);
+app.use("/api/delivery", deliveryStaffRoutes);
+app.use("/api/delivery", deliveryOperationsRoutes);
+app.use("/api/admin/delivery", adminDeliveryRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/admin/products", adminProductsRoutes);
 app.use("/api/categories", categoriesRoutes);
@@ -81,7 +94,7 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => 
   if (error instanceof MulterError) {
     const message =
       error.code === "LIMIT_FILE_SIZE"
-        ? "Image files must be 5 MB or smaller."
+        ? "Uploaded files must be 5 MB or smaller."
         : "The uploaded file could not be accepted.";
     response.status(400).json({ error: message });
     return;

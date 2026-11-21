@@ -8,8 +8,7 @@ export function dashboardPathForRoles(roles: string[]) {
   if (roles.includes("super_admin") || roles.includes("admin")) return "/admin/dashboard";
   if (roles.includes("inventory_manager")) return "/admin/inventory";
   if (roles.includes("order_manager")) return "/admin/orders";
-  if (roles.includes("delivery_manager") || roles.includes("delivery_staff")) {
-    return "/admin/deliveries";
-  }
+  if (roles.includes("delivery_staff")) return "/delivery/dashboard";
+  if (roles.includes("delivery_manager")) return "/admin/deliveries";
   return "/account/dashboard";
 }

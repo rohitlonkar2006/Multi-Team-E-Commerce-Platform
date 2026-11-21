@@ -240,7 +240,6 @@ export function AdminDashboardPage() {
     queryFn: () =>
       apiRequest<{ analytics: AdminAnalytics }>("/admin/analytics", session?.access_token),
     enabled: Boolean(session?.access_token),
-    retry: 1,
   });
   const data = analyticsQuery.data?.analytics;
 
@@ -255,6 +254,7 @@ export function AdminDashboardPage() {
         <nav className="flex flex-wrap gap-2" aria-label="Administration">
           <Button asChild variant="outline" size="sm"><Link to="/admin/products"><Box size={15} className="mr-2" />Products</Link></Button>
           <Button asChild variant="outline" size="sm"><Link to="/admin/categories">Categories</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/admin/deliveries"><PackageCheck size={15} className="mr-2" />Delivery</Link></Button>
         </nav>
       </div>
 

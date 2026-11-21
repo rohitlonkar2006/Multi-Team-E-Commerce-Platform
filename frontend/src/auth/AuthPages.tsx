@@ -332,7 +332,7 @@ const newPasswordSchema = z
 type NewPasswordValues = z.infer<typeof newPasswordSchema>;
 
 export function ResetPasswordPage() {
-  const { updatePassword, configMissing } = useAuth();
+  const { updatePassword, refreshAccount, configMissing } = useAuth();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<NewPasswordValues>({ resolver: zodResolver(newPasswordSchema) });
@@ -341,7 +341,8 @@ export function ResetPasswordPage() {
     setFormError(null);
     try {
       await updatePassword(values.password);
-      navigate("/account", { replace: true });
+      const account = await refreshAccount();
+      navigate(dashboardPathForRoles(account?.roles ?? []), { replace: true });
     } catch (error) {
       setFormError(messageOf(error));
     }

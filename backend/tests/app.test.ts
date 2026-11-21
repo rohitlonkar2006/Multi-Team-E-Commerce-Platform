@@ -69,6 +69,21 @@ describe("API foundation", () => {
     expect(response.body).toEqual({ error: "Authentication is required." });
   });
 
+  it("requires authentication for delivery dashboards, uploads, and admin operations", async () => {
+    const responses = await Promise.all([
+      request(app).get("/api/delivery/dashboard"),
+      request(app).post("/api/delivery/license"),
+      request(app).get("/api/delivery/manager/staff"),
+      request(app).get("/api/admin/delivery/staff"),
+      request(app).post("/api/admin/delivery/staff").send({}),
+      request(app).get("/api/admin/delivery/orders"),
+    ]);
+
+    expect(responses.map(({ status }) => status)).toEqual([
+      401, 401, 401, 401, 401, 401,
+    ]);
+  });
+
   it("rejects invalid pagination and price-range filters before database access", async () => {
     const invalidPage = await request(app).get("/api/products?page=0");
     const invalidRange = await request(app).get(
@@ -79,5 +94,18 @@ describe("API foundation", () => {
     expect(invalidPage.body.error).toBe("Invalid request data.");
     expect(invalidRange.status).toBe(400);
     expect(invalidRange.body.error).toBe("Invalid request data.");
+  });
+
+  it("returns JSON when the API rate limit is reached", async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 110 }, () => request(app).get("/api/health")),
+    );
+    const limitedResponse = responses.find((response) => response.status === 429);
+
+    expect(limitedResponse).toBeDefined();
+    expect(limitedResponse?.headers["content-type"]).toContain("application/json");
+    expect(limitedResponse?.body).toEqual({
+      error: "Too many requests, please try again later.",
+    });
   });
 });

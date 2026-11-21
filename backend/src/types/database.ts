@@ -255,6 +255,46 @@ export type Database = {
           updated_at?: string;
         }
       >;
+      delivery_staff_profiles: TableDefinition<
+        {
+          user_id: string;
+          email: string;
+          full_name: string;
+          service_zone: string;
+          license_storage_path: string | null;
+          license_status: "missing" | "pending" | "approved" | "rejected";
+          license_rejection_reason: string;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          is_active: boolean;
+        } & Timestamped,
+        {
+          user_id: string;
+          email: string;
+          full_name: string;
+          service_zone: string;
+          license_storage_path?: string | null;
+          license_status?: "missing" | "pending" | "approved" | "rejected";
+          license_rejection_reason?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        },
+        {
+          email?: string;
+          full_name?: string;
+          service_zone?: string;
+          license_storage_path?: string | null;
+          license_status?: "missing" | "pending" | "approved" | "rejected";
+          license_rejection_reason?: string;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          is_active?: boolean;
+          updated_at?: string;
+        }
+      >;
     };
     Views: {
       product_stock_status: {
@@ -351,6 +391,50 @@ export type Database = {
       };
       get_my_payment: {
         Args: { p_payment_id: string };
+        Returns: Json;
+      };
+      submit_delivery_license: {
+        Args: { p_storage_path: string };
+        Returns: Json;
+      };
+      get_my_delivery_dashboard: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_admin_delivery_queue: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_assignable_delivery_staff: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      admin_assign_delivery: {
+        Args: { p_order_id: string; p_delivery_staff_id: string };
+        Returns: Json;
+      };
+      admin_update_delivery_staff: {
+        Args: {
+          p_delivery_staff_id: string;
+          p_service_zone: string;
+          p_is_active: boolean;
+        };
+        Returns: Json;
+      };
+      admin_review_delivery_license: {
+        Args: {
+          p_delivery_staff_id: string;
+          p_decision: string;
+          p_rejection_reason?: string;
+        };
+        Returns: Json;
+      };
+      update_assigned_delivery_status: {
+        Args: {
+          p_delivery_id: string;
+          p_status: string;
+          p_note?: string;
+        };
         Returns: Json;
       };
     };

@@ -16,6 +16,11 @@ newsletterRoutes.post(
     limit: 5,
     standardHeaders: "draft-8",
     legacyHeaders: false,
+    handler: (_request, response) => {
+      response
+        .status(429)
+        .json({ error: "Too many requests, please try again later." });
+    },
   }),
   async (request, response) => {
     const parsed = subscriptionSchema.safeParse(request.body);

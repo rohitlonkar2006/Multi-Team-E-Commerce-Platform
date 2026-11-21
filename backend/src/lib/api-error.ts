@@ -10,6 +10,7 @@ export class ApiError extends Error {
 
 type DatabaseError = {
   code?: string;
+  message?: string;
 };
 
 export function sendDatabaseError(
@@ -27,13 +28,32 @@ export function sendDatabaseError(
   }
 
   if (error.code === "22023") {
-    response.status(400).json({ error: "The submitted data is not valid for this operation." });
+    const publicMessages = new Set([
+      "Delivery staff service zone must match the order city or postal code",
+      "Choose an active delivery staff member with an approved license",
+      "An in-progress delivery cannot be reassigned",
+      "A license is already awaiting review or approved",
+      "Delivery status transition is not allowed",
+      "Add a short reason when reporting a failed delivery",
+    ]);
+    response.status(400).json({
+      error: error.message && publicMessages.has(error.message)
+        ? error.message
+        : "The submitted data is not valid for this operation.",
+    });
     return;
   }
 
   if (error.code === "P0001") {
+    const operationMessages = new Set([
+      "An in-progress delivery cannot be reassigned",
+      "Service zone cannot change while active deliveries are outside the new zone",
+    ]);
     response.status(409).json({
-      error: "The cart or stock state changed. Review your cart and try again.",
+      error:
+        error.message && operationMessages.has(error.message)
+          ? error.message
+          : "The requested operation is no longer available. Refresh and try again.",
     });
     return;
   }

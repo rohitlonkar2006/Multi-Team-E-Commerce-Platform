@@ -17,7 +17,7 @@ The frontend and API are separate applications. Both use the same Supabase proje
 | 3 | Cart, checkout, and simulated payment | Users, products, inventory |
 | 4 | Orders and delivery status | Users, checkout, payment |
 
-Cart, order, payment, inventory-history, delivery, notification, review, and audit-log tables are defined in the migrations. Cart mutations, checkout, failed-payment retry, and customer order reads use authenticated database functions. Delivery updates, admin analytics, notification creation, full role-specific management, and remaining customer workflows are still in progress; see [PROJECT_PROGRESS.md](../PROJECT_PROGRESS.md).
+Cart, order, payment, inventory-history, delivery, notification, review, audit-log, and delivery-staff profile tables are defined in the migrations. Cart mutations, checkout, failed-payment retry, customer order reads, driver assignment, and driver status transitions use authenticated database functions. Delivery invitations and private license uploads/review links use a backend-only service-role client after API role checks; the browser never receives that key. See [PROJECT_PROGRESS.md](../PROJECT_PROGRESS.md) for live database and test status.
 
 Checkout locks cart and inventory rows, stores product/address snapshots, and uses an idempotency key. A failed payment does not decrement stock or clear the cart. Prices are read from PostgreSQL, not accepted from the browser. Tax and shipping are deliberately zero until a project pricing policy is defined.
 

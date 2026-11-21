@@ -3,6 +3,29 @@ const apiUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:4000").re
   "",
 );
 
+export class ApiRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+  }
+}
+
+export function isRateLimitedError(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.status === 429;
+}
+
+function isErrorPayload(value: unknown): value is { error: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "error" in value &&
+    typeof value.error === "string"
+  );
+}
+
 export async function apiRequest<T>(
   path: string,
   accessToken?: string,
@@ -20,9 +43,29 @@ export async function apiRequest<T>(
   });
   if (response.status === 204) return undefined as T;
 
-  const payload = (await response.json()) as { error?: string } & T;
-  if (!response.ok) {
-    throw new Error(payload.error || `Request failed with status ${response.status}.`);
+  const responseText = await response.text();
+  let payload: unknown;
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText) as unknown;
+    } catch {
+      payload = undefined;
+    }
   }
-  return payload;
+  if (!response.ok) {
+    const plainTextError =
+      response.headers.get("content-type")?.includes("text/plain")
+        ? responseText.trim().slice(0, 200)
+        : "";
+    throw new ApiRequestError(
+      (isErrorPayload(payload) && payload.error) ||
+        plainTextError ||
+        `Request failed with status ${response.status}.`,
+      response.status,
+    );
+  }
+  if (payload === undefined) {
+    throw new Error("The API returned an invalid JSON response.");
+  }
+  return payload as T;
 }

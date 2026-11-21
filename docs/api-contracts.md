@@ -48,7 +48,7 @@ Supabase Auth client methods handle registration, login, logout, email confirmat
 | DELETE | `/admin/categories/:id` | Admin | Deactivates a category |
 | GET | `/admin/analytics` | Admin or super-admin | Returns database-backed store totals, recent orders, and revenue/order trends |
 
-The API uses the Supabase publishable key and caller's access token. Supabase RLS remains authoritative for all protected rows and storage writes.
+The API uses the Supabase publishable key and caller's access token for normal database requests. Delivery mutations use role-checked database functions; only invitation and private-file operations use the backend-only service-role key.
 
 ## Cart, checkout, orders, and simulated payments
 
@@ -67,3 +67,23 @@ All routes in this section require a verified Supabase access token. The fronten
 | GET | `/payments/:id` | Owner or order manager | Returns only the caller's payment record |
 
 Payment methods are `simulated_upi`, `simulated_card`, and `cash_on_delivery`. Simulation outcomes are `success` or `failed`; cash on delivery is recorded as pending. Simulations do not connect to a bank or collect payment credentials. Failed payments preserve cart contents and do not decrement inventory. Successful simulated payments and COD checkout decrement stock and write inventory history in the same PostgreSQL transaction. Retrying a failed payment rechecks stock under row locks.
+
+## Delivery accounts and dispatch
+
+Customer registration always creates a customer role. Delivery accounts are created only by administrators, who send an email invitation and assign a city or postcode service zone. A delivery partner submits a JPEG, PNG, or PDF license (up to 5 MB); it is kept in a private bucket and requires administrator approval before the partner can receive or view assigned deliveries. Review links expire after 60 seconds. No GPS coordinates are collected.
+
+Administrators assign orders to active, license-approved partners whose configured zone exactly matches the order city or postcode. Delivery partners can access only their own assignments and can advance them through the permitted delivery status sequence. Delivery managers may assign orders but cannot create accounts or review licenses.
+
+| Method | Route | Access | Contract |
+| --- | --- | --- | --- |
+| POST | `/admin/delivery/staff` | Admin | `{ fullName, email, serviceZone }` sends a delivery-partner invitation |
+| GET | `/admin/delivery/staff` | Admin | Lists delivery accounts and license-review state |
+| PATCH | `/admin/delivery/staff/:staffId` | Admin | `{ serviceZone, isActive }` updates a partner's service zone or active state |
+| GET | `/admin/delivery/staff/:staffId/license-url` | Admin | Returns a 60-second signed URL for a pending private license |
+| POST | `/admin/delivery/staff/:staffId/license-review` | Admin | `{ decision: "approved" }` or `{ decision: "rejected", rejectionReason }` |
+| GET | `/admin/delivery/orders` | Admin or delivery manager | Lists non-terminal orders with their delivery zone and current assignment |
+| PUT | `/admin/delivery/orders/:orderId/assign` | Admin or delivery manager | `{ deliveryStaffId }`; database rechecks license, active status, order state, and zone |
+| GET | `/delivery/manager/staff` | Admin or delivery manager | Lists only active, license-approved partners eligible for assignment |
+| GET | `/delivery/dashboard` | Delivery partner | Returns their license state and only orders assigned to their account |
+| POST | `/delivery/license` | Delivery partner | Multipart `license` upload; JPEG, PNG, or PDF up to 5 MB |
+| PATCH | `/delivery/orders/:deliveryId/status` | Assigned delivery partner | `{ status, note? }` advances only that partner's assigned delivery |

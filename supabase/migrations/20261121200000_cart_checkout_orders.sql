@@ -1,5 +1,5 @@
 alter table public.user_roles
-  drop constraint user_roles_role_check,
+  drop constraint if exists user_roles_role_check,
   add constraint user_roles_role_check
     check (role in (
       'customer',
@@ -42,14 +42,14 @@ $$;
 revoke all on function public.is_admin() from public;
 grant execute on function public.is_admin() to anon, authenticated;
 
-create table public.carts (
+create table if not exists public.carts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references auth.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table public.cart_items (
+create table if not exists public.cart_items (
   id uuid primary key default gen_random_uuid(),
   cart_id uuid not null references public.carts (id) on delete cascade,
   product_id uuid not null references public.products (id) on delete restrict,
@@ -59,9 +59,9 @@ create table public.cart_items (
   unique (cart_id, product_id)
 );
 
-create index cart_items_cart_id_idx on public.cart_items (cart_id);
+create index if not exists cart_items_cart_id_idx on public.cart_items (cart_id);
 
-create table public.orders (
+create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   order_number text not null unique,
   user_id uuid not null references auth.users (id) on delete restrict,
@@ -89,10 +89,10 @@ create table public.orders (
   unique (user_id, idempotency_key)
 );
 
-create index orders_user_created_at_idx on public.orders (user_id, created_at desc);
-create index orders_status_created_at_idx on public.orders (status, created_at desc);
+create index if not exists orders_user_created_at_idx on public.orders (user_id, created_at desc);
+create index if not exists orders_status_created_at_idx on public.orders (status, created_at desc);
 
-create table public.order_items (
+create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders (id) on delete cascade,
   product_id uuid references public.products (id) on delete set null,
@@ -105,9 +105,9 @@ create table public.order_items (
   created_at timestamptz not null default now()
 );
 
-create index order_items_order_id_idx on public.order_items (order_id);
+create index if not exists order_items_order_id_idx on public.order_items (order_id);
 
-create table public.payments (
+create table if not exists public.payments (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders (id) on delete restrict,
   user_id uuid not null references auth.users (id) on delete restrict,
@@ -121,10 +121,10 @@ create table public.payments (
   unique (order_id, idempotency_key)
 );
 
-create index payments_user_created_at_idx on public.payments (user_id, created_at desc);
-create index payments_order_id_idx on public.payments (order_id, created_at desc);
+create index if not exists payments_user_created_at_idx on public.payments (user_id, created_at desc);
+create index if not exists payments_order_id_idx on public.payments (order_id, created_at desc);
 
-create table public.inventory_history (
+create table if not exists public.inventory_history (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products (id) on delete cascade,
   changed_by uuid references auth.users (id) on delete set null,
@@ -134,10 +134,10 @@ create table public.inventory_history (
   created_at timestamptz not null default now()
 );
 
-create index inventory_history_product_created_at_idx
+create index if not exists inventory_history_product_created_at_idx
   on public.inventory_history (product_id, created_at desc);
 
-create table public.order_status_history (
+create table if not exists public.order_status_history (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.orders (id) on delete cascade,
   changed_by uuid references auth.users (id) on delete set null,
@@ -146,10 +146,10 @@ create table public.order_status_history (
   created_at timestamptz not null default now()
 );
 
-create index order_status_history_order_created_at_idx
+create index if not exists order_status_history_order_created_at_idx
   on public.order_status_history (order_id, created_at desc);
 
-create table public.deliveries (
+create table if not exists public.deliveries (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null unique references public.orders (id) on delete cascade,
   assigned_to uuid references auth.users (id) on delete set null,
@@ -161,7 +161,7 @@ create table public.deliveries (
   updated_at timestamptz not null default now()
 );
 
-create table public.delivery_status_history (
+create table if not exists public.delivery_status_history (
   id uuid primary key default gen_random_uuid(),
   delivery_id uuid not null references public.deliveries (id) on delete cascade,
   changed_by uuid references auth.users (id) on delete set null,
@@ -171,10 +171,10 @@ create table public.delivery_status_history (
   created_at timestamptz not null default now()
 );
 
-create index delivery_status_history_delivery_created_at_idx
+create index if not exists delivery_status_history_delivery_created_at_idx
   on public.delivery_status_history (delivery_id, created_at desc);
 
-create table public.notifications (
+create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   kind text not null,
@@ -185,10 +185,10 @@ create table public.notifications (
   created_at timestamptz not null default now()
 );
 
-create index notifications_user_unread_created_at_idx
+create index if not exists notifications_user_unread_created_at_idx
   on public.notifications (user_id, is_read, created_at desc);
 
-create table public.reviews (
+create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references public.products (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
@@ -203,10 +203,10 @@ create table public.reviews (
   check (char_length(body) <= 2000)
 );
 
-create index reviews_product_published_created_at_idx
+create index if not exists reviews_product_published_created_at_idx
   on public.reviews (product_id, is_published, created_at desc);
 
-create table public.audit_logs (
+create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid references auth.users (id) on delete set null,
   action text not null,
@@ -216,10 +216,10 @@ create table public.audit_logs (
   created_at timestamptz not null default now()
 );
 
-create index audit_logs_entity_created_at_idx
+create index if not exists audit_logs_entity_created_at_idx
   on public.audit_logs (entity_type, entity_id, created_at desc);
 
-create table public.wishlist_items (
+create table if not exists public.wishlist_items (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   product_id uuid not null references public.products (id) on delete cascade,
@@ -227,10 +227,10 @@ create table public.wishlist_items (
   unique (user_id, product_id)
 );
 
-create index wishlist_items_user_created_at_idx
+create index if not exists wishlist_items_user_created_at_idx
   on public.wishlist_items (user_id, created_at desc);
 
-create table public.newsletter_subscriptions (
+create table if not exists public.newsletter_subscriptions (
   email text primary key,
   subscribed_at timestamptz not null default now(),
   check (email = lower(btrim(email))),
@@ -238,22 +238,27 @@ create table public.newsletter_subscriptions (
   check (char_length(email) <= 254)
 );
 
+drop trigger if exists carts_set_updated_at on public.carts;
 create trigger carts_set_updated_at
   before update on public.carts
   for each row execute function public.set_updated_at();
 
+drop trigger if exists cart_items_set_updated_at on public.cart_items;
 create trigger cart_items_set_updated_at
   before update on public.cart_items
   for each row execute function public.set_updated_at();
 
+drop trigger if exists orders_set_updated_at on public.orders;
 create trigger orders_set_updated_at
   before update on public.orders
   for each row execute function public.set_updated_at();
 
+drop trigger if exists deliveries_set_updated_at on public.deliveries;
 create trigger deliveries_set_updated_at
   before update on public.deliveries
   for each row execute function public.set_updated_at();
 
+drop trigger if exists reviews_set_updated_at on public.reviews;
 create trigger reviews_set_updated_at
   before update on public.reviews
   for each row execute function public.set_updated_at();
@@ -285,6 +290,24 @@ grant select, insert, delete on public.wishlist_items to authenticated;
 grant select, insert, delete on public.reviews to authenticated;
 grant update (rating, title, body) on public.reviews to authenticated;
 grant select on public.reviews to anon;
+
+drop policy if exists "Users can read their own carts" on public.carts;
+drop policy if exists "Users can read their own cart items" on public.cart_items;
+drop policy if exists "Users can read their own orders" on public.orders;
+drop policy if exists "Users can read their own order items" on public.order_items;
+drop policy if exists "Users can read their own payments" on public.payments;
+drop policy if exists "Managers can read inventory history" on public.inventory_history;
+drop policy if exists "Users can read their own order status history" on public.order_status_history;
+drop policy if exists "Customers and delivery staff can read deliveries" on public.deliveries;
+drop policy if exists "Customers and delivery staff can read delivery history" on public.delivery_status_history;
+drop policy if exists "Users can read and update their own notifications" on public.notifications;
+drop policy if exists "Users can mark their own notifications as read" on public.notifications;
+drop policy if exists "Published reviews are public" on public.reviews;
+drop policy if exists "Users can create their own reviews" on public.reviews;
+drop policy if exists "Users can update their own reviews" on public.reviews;
+drop policy if exists "Users can delete their own reviews" on public.reviews;
+drop policy if exists "Administrators can read audit logs" on public.audit_logs;
+drop policy if exists "Users can manage their own wishlist" on public.wishlist_items;
 
 create policy "Users can read their own carts"
   on public.carts for select to authenticated

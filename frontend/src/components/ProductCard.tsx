@@ -40,7 +40,7 @@ export function ProductCard({ product }: { product: Product }) {
   const error = addToCart.error ?? addToWishlist.error;
 
   return (
-    <article className="group min-w-0 overflow-hidden rounded-2xl border border-border bg-white transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5">
+    <article className="dashboard-card reveal-on-load group min-w-0 overflow-hidden rounded-2xl border border-border bg-white transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5">
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary/60">
         <Link to={`/products/${product.slug}`} aria-label={`View ${product.name}`}>
           {product.image_url && !imageFailed ? (
