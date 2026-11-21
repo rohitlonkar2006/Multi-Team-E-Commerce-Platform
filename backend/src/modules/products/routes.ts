@@ -13,6 +13,7 @@ import {
   listAdminProductsController,
   listCategories,
   listProducts,
+  listTrending,
   updateCategory,
   updateInventory,
   updateProduct,
@@ -34,6 +35,7 @@ const imageUpload = multer({
 
 export const productsRoutes = Router();
 productsRoutes.get("/", listProducts);
+productsRoutes.get("/trending", listTrending);
 productsRoutes.get("/:slug", getProduct);
 
 export const adminProductsRoutes = Router();

@@ -45,10 +45,12 @@ describe("API foundation", () => {
     const cartResponse = await request(app).get("/api/cart");
     const ordersResponse = await request(app).get("/api/orders");
     const paymentResponse = await request(app).post("/api/payments/simulate").send({});
+    const wishlistResponse = await request(app).get("/api/wishlist");
 
     expect(cartResponse.status).toBe(401);
     expect(ordersResponse.status).toBe(401);
     expect(paymentResponse.status).toBe(401);
+    expect(wishlistResponse.status).toBe(401);
   });
 
   it("rejects unauthenticated product-management requests", async () => {
@@ -57,6 +59,13 @@ describe("API foundation", () => {
     });
 
     expect(response.status).toBe(401);
+  });
+
+  it("requires authentication for admin analytics", async () => {
+    const response = await request(app).get("/api/admin/analytics");
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: "Authentication is required." });
     expect(response.body).toEqual({ error: "Authentication is required." });
   });
 

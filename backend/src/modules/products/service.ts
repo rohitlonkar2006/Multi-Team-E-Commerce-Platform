@@ -77,6 +77,48 @@ export async function listActiveProducts(filters: ProductListQuery) {
   };
 }
 
+export async function listTrendingProducts() {
+  const client = getSupabaseClient();
+  const { data: ranking, error: rankingError } = await client.rpc(
+    "get_trending_product_ids",
+    { p_limit: 8 },
+  );
+  if (rankingError) return { data: null, error: rankingError };
+
+  const productIds = ranking.map(({ product_id }) => product_id);
+  if (!productIds.length) return { data: [], error: null };
+
+  const { data, error } = await client
+    .from("products")
+    .select(productSelection)
+    .eq("is_active", true)
+    .in("id", productIds);
+  if (error) return { data: null, error };
+
+  const availabilityResult = await client
+    .from("product_stock_status")
+    .select("product_id,in_stock")
+    .in("product_id", productIds);
+  if (availabilityResult.error) {
+    return { data: null, error: availabilityResult.error };
+  }
+
+  const productsById = new Map(
+    (data ?? []).map((product) => [product.id, product]),
+  );
+  const stockById = new Map(
+    (availabilityResult.data ?? []).map((stock) => [stock.product_id, stock.in_stock]),
+  );
+
+  return {
+    data: productIds.flatMap((id) => {
+      const product = productsById.get(id);
+      return product ? [{ ...product, in_stock: stockById.get(id) ?? false }] : [];
+    }),
+    error: null,
+  };
+}
+
 export async function getProductBySlug(slug: string) {
   const client = getSupabaseClient();
   const { data, error } = await client

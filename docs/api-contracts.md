@@ -46,6 +46,7 @@ Supabase Auth client methods handle registration, login, logout, email confirmat
 | POST | `/admin/categories` | Admin | Creates a category |
 | PUT | `/admin/categories/:id` | Admin | Updates a category |
 | DELETE | `/admin/categories/:id` | Admin | Deactivates a category |
+| GET | `/admin/analytics` | Admin or super-admin | Returns database-backed store totals, recent orders, and revenue/order trends |
 
 The API uses the Supabase publishable key and caller's access token. Supabase RLS remains authoritative for all protected rows and storage writes.
 

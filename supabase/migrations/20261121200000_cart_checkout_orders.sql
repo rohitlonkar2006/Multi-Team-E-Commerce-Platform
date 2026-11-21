@@ -219,6 +219,25 @@ create table public.audit_logs (
 create index audit_logs_entity_created_at_idx
   on public.audit_logs (entity_type, entity_id, created_at desc);
 
+create table public.wishlist_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  product_id uuid not null references public.products (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, product_id)
+);
+
+create index wishlist_items_user_created_at_idx
+  on public.wishlist_items (user_id, created_at desc);
+
+create table public.newsletter_subscriptions (
+  email text primary key,
+  subscribed_at timestamptz not null default now(),
+  check (email = lower(btrim(email))),
+  check (position('@' in email) > 1),
+  check (char_length(email) <= 254)
+);
+
 create trigger carts_set_updated_at
   before update on public.carts
   for each row execute function public.set_updated_at();
@@ -251,6 +270,8 @@ alter table public.delivery_status_history enable row level security;
 alter table public.notifications enable row level security;
 alter table public.reviews enable row level security;
 alter table public.audit_logs enable row level security;
+alter table public.wishlist_items enable row level security;
+alter table public.newsletter_subscriptions enable row level security;
 
 grant select on public.carts, public.cart_items to authenticated;
 grant select on public.orders, public.order_items, public.payments to authenticated;
@@ -260,6 +281,7 @@ grant select on public.deliveries, public.delivery_status_history to authenticat
 grant select on public.notifications, public.reviews to authenticated;
 grant update (is_read) on public.notifications to authenticated;
 grant select on public.audit_logs to authenticated;
+grant select, insert, delete on public.wishlist_items to authenticated;
 grant select, insert, delete on public.reviews to authenticated;
 grant update (rating, title, body) on public.reviews to authenticated;
 grant select on public.reviews to anon;
@@ -378,6 +400,11 @@ create policy "Administrators can read audit logs"
   on public.audit_logs for select to authenticated
   using ((select public.has_role(array['admin', 'super_admin'])));
 
+create policy "Users can manage their own wishlist"
+  on public.wishlist_items for all to authenticated
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
+
 create or replace function public.get_my_cart()
 returns jsonb
 language plpgsql
@@ -421,6 +448,125 @@ begin
   where c.user_id = current_user_id;
 
   return coalesce(cart_json, jsonb_build_object('items', '[]'::jsonb, 'subtotal', 0));
+end;
+$$;
+
+create or replace function public.get_trending_product_ids(p_limit integer default 8)
+returns table(product_id uuid)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select oi.product_id
+  from public.order_items oi
+  join public.orders o on o.id = oi.order_id
+  join public.products p on p.id = oi.product_id
+  where p.is_active
+    and o.status not in ('payment_failed', 'cancelled')
+  group by oi.product_id
+  order by sum(oi.quantity) desc, max(o.created_at) desc
+  limit least(greatest(coalesce(p_limit, 8), 1), 20);
+$$;
+
+create or replace function public.get_my_wishlist()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'id', wi.id,
+        'product_id', p.id,
+        'name', p.name,
+        'slug', p.slug,
+        'category_id', p.category_id,
+        'category_name', c.name,
+        'image_url', p.image_url,
+        'price', p.price,
+        'currency', p.currency,
+        'is_active', p.is_active,
+        'in_stock', coalesce(i.quantity > 0, false)
+      ) order by wi.created_at desc
+    ),
+    '[]'::jsonb
+  )
+  from public.wishlist_items wi
+  join public.products p on p.id = wi.product_id
+  left join public.categories c on c.id = p.category_id
+  left join public.inventory i on i.product_id = p.id
+  where wi.user_id = (select auth.uid());
+$$;
+
+create or replace function public.add_to_wishlist(p_product_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  current_user_id uuid := (select auth.uid());
+begin
+  if current_user_id is null then
+    raise exception 'Authentication is required' using errcode = '42501';
+  end if;
+  if not exists (
+    select 1 from public.products
+    where id = p_product_id and is_active
+  ) then
+    raise exception 'Product is unavailable' using errcode = 'P0002';
+  end if;
+
+  insert into public.wishlist_items (user_id, product_id)
+  values (current_user_id, p_product_id)
+  on conflict (user_id, product_id) do nothing;
+
+  return public.get_my_wishlist();
+end;
+$$;
+
+create or replace function public.remove_from_wishlist(p_product_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  current_user_id uuid := (select auth.uid());
+begin
+  if current_user_id is null then
+    raise exception 'Authentication is required' using errcode = '42501';
+  end if;
+
+  delete from public.wishlist_items
+  where user_id = current_user_id and product_id = p_product_id;
+  return public.get_my_wishlist();
+end;
+$$;
+
+create or replace function public.subscribe_newsletter(p_email text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  normalized_email text := lower(btrim(p_email));
+begin
+  if normalized_email is null
+     or normalized_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+     or char_length(normalized_email) > 254 then
+    raise exception 'A valid email address is required' using errcode = '22023';
+  end if;
+
+  insert into public.newsletter_subscriptions (email)
+  values (normalized_email)
+  on conflict (email) do nothing;
+
+  return true;
 end;
 $$;
 
@@ -1001,6 +1147,169 @@ as $$
   where o.user_id = (select auth.uid());
 $$;
 
+create or replace function public.get_admin_dashboard()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  dashboard_json jsonb;
+begin
+  if (select auth.uid()) is null then
+    raise exception 'Authentication is required' using errcode = '42501';
+  end if;
+  if not (select public.has_role(array['admin', 'super_admin'])) then
+    raise exception 'Administrator access is required' using errcode = '42501';
+  end if;
+
+  select jsonb_build_object(
+    'totalRevenue', coalesce((
+      select sum(amount) from public.payments where status = 'success'
+    ), 0),
+    'totalOrders', (select count(*) from public.orders),
+    'totalCustomers', (
+      select count(distinct user_id) from public.user_roles where role = 'customer'
+    ),
+    'totalProducts', (
+      select count(*) from public.products where is_active
+    ),
+    'pendingOrders', (
+      select count(*) from public.orders where status = 'pending'
+    ),
+    'completedOrders', (
+      select count(*) from public.orders where status = 'delivered'
+    ),
+    'lowStockProducts', (
+      select count(*) from public.inventory where quantity <= 5
+    ),
+    'recentOrders', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'id', recent.id,
+          'order_number', recent.order_number,
+          'status', recent.status,
+          'total', recent.total,
+          'currency', recent.currency,
+          'created_at', recent.created_at
+        ) order by recent.created_at desc
+      )
+      from (
+        select id, order_number, status, total, currency, created_at
+        from public.orders
+        order by created_at desc
+        limit 8
+      ) recent
+    ), '[]'::jsonb),
+    'monthlyRevenue', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'month', to_char(monthly.month_start, 'Mon YYYY'),
+          'revenue', coalesce(monthly.revenue, 0)
+        ) order by monthly.month_start
+      )
+      from (
+        select months.month_start, sum(p.amount) as revenue
+        from generate_series(
+          date_trunc('month', current_date) - interval '5 months',
+          date_trunc('month', current_date),
+          interval '1 month'
+        ) months(month_start)
+        left join public.payments p
+          on p.status = 'success'
+          and p.created_at >= months.month_start
+          and p.created_at < months.month_start + interval '1 month'
+        group by months.month_start
+      ) monthly
+    ), '[]'::jsonb),
+    'weeklyOrders', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'day', to_char(days.day_start, 'Dy'),
+          'orders', count(o.id)
+        ) order by days.day_start
+      )
+      from generate_series(
+        current_date - interval '6 days',
+        current_date,
+        interval '1 day'
+      ) days(day_start)
+      left join public.orders o
+        on o.created_at >= days.day_start
+        and o.created_at < days.day_start + interval '1 day'
+      group by days.day_start
+    ), '[]'::jsonb),
+    'salesByCategory', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'category', category_sales.category,
+          'revenue', category_sales.revenue
+        ) order by category_sales.revenue desc
+      )
+      from (
+        select coalesce(c.name, 'Uncategorized') as category,
+               sum(oi.line_total) as revenue
+        from public.order_items oi
+        join public.orders o on o.id = oi.order_id
+        left join public.products p on p.id = oi.product_id
+        left join public.categories c on c.id = p.category_id
+        where o.status not in ('payment_failed', 'cancelled')
+        group by coalesce(c.name, 'Uncategorized')
+        order by sum(oi.line_total) desc
+        limit 6
+      ) category_sales
+    ), '[]'::jsonb),
+    'topProducts', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'product', top_products.product_name,
+          'quantity', top_products.quantity
+        ) order by top_products.quantity desc
+      )
+      from (
+        select oi.product_name, sum(oi.quantity) as quantity
+        from public.order_items oi
+        join public.orders o on o.id = oi.order_id
+        where o.status not in ('payment_failed', 'cancelled')
+        group by oi.product_name
+        order by sum(oi.quantity) desc
+        limit 6
+      ) top_products
+    ), '[]'::jsonb),
+    'paymentMethods', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'method', payment_methods.method,
+          'count', payment_methods.payment_count
+        ) order by payment_methods.payment_count desc
+      )
+      from (
+        select method, count(*) as payment_count
+        from public.payments
+        group by method
+      ) payment_methods
+    ), '[]'::jsonb),
+    'orderStatuses', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'status', order_statuses.status,
+          'count', order_statuses.order_count
+        ) order by order_statuses.order_count desc
+      )
+      from (
+        select status, count(*) as order_count
+        from public.orders
+        group by status
+      ) order_statuses
+    ), '[]'::jsonb)
+  )
+  into dashboard_json;
+
+  return dashboard_json;
+end;
+$$;
+
 create or replace function public.get_my_order(p_order_id uuid)
 returns jsonb
 language sql
@@ -1096,20 +1405,32 @@ as $$
 $$;
 
 revoke all on function public.get_my_cart() from public, anon;
+revoke all on function public.get_trending_product_ids(integer) from public;
+revoke all on function public.get_my_wishlist() from public, anon;
+revoke all on function public.add_to_wishlist(uuid) from public, anon;
+revoke all on function public.remove_from_wishlist(uuid) from public, anon;
+revoke all on function public.subscribe_newsletter(text) from public;
 revoke all on function public.add_cart_item(uuid, integer) from public, anon;
 revoke all on function public.set_cart_item_quantity(uuid, integer) from public, anon;
 revoke all on function public.remove_cart_item(uuid) from public, anon;
 revoke all on function public.checkout_cart(uuid, text, text, text) from public, anon;
 revoke all on function public.retry_simulated_payment(uuid, text, text) from public, anon;
 revoke all on function public.get_my_orders() from public, anon;
+revoke all on function public.get_admin_dashboard() from public, anon;
 revoke all on function public.get_my_order(uuid) from public, anon;
 revoke all on function public.get_my_payment(uuid) from public, anon;
 grant execute on function public.get_my_cart() to authenticated;
+grant execute on function public.get_trending_product_ids(integer) to anon, authenticated;
+grant execute on function public.get_my_wishlist() to authenticated;
+grant execute on function public.add_to_wishlist(uuid) to authenticated;
+grant execute on function public.remove_from_wishlist(uuid) to authenticated;
+grant execute on function public.subscribe_newsletter(text) to anon, authenticated;
 grant execute on function public.add_cart_item(uuid, integer) to authenticated;
 grant execute on function public.set_cart_item_quantity(uuid, integer) to authenticated;
 grant execute on function public.remove_cart_item(uuid) to authenticated;
 grant execute on function public.checkout_cart(uuid, text, text, text) to authenticated;
 grant execute on function public.retry_simulated_payment(uuid, text, text) to authenticated;
 grant execute on function public.get_my_orders() to authenticated;
+grant execute on function public.get_admin_dashboard() to authenticated;
 grant execute on function public.get_my_order(uuid) to authenticated;
 grant execute on function public.get_my_payment(uuid) to authenticated;

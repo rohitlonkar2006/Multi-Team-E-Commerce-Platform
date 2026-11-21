@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useAuth } from "@/auth/useAuth";
+import { dashboardPathForRoles } from "@/auth/roles";
 import { Button } from "@/components/ui/button";
 
 const emailSchema = z.string().trim().email("Enter a valid email address.");
@@ -85,14 +86,16 @@ export function LoginPage() {
   const location = useLocation();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
-  const destination =
-    (location.state as { from?: string } | null)?.from ?? "/account";
+  const requestedDestination = (location.state as { from?: string } | null)?.from;
 
   async function submit(values: LoginValues) {
     setFormError(null);
     try {
-      await signIn(values.email, values.password);
-      navigate(destination, { replace: true });
+      const account = await signIn(values.email, values.password);
+      navigate(
+        requestedDestination ?? dashboardPathForRoles(account.roles),
+        { replace: true },
+      );
     } catch (error) {
       setFormError(messageOf(error));
     }
@@ -131,6 +134,76 @@ export function LoginPage() {
             New to ShopSphere?{" "}
             <Link className="font-semibold text-primary hover:underline" to="/register">
               Create an account
+            </Link>
+          </p>
+        </form>
+      )}
+    </AuthCard>
+  );
+}
+
+const staffRoles = [
+  "admin",
+  "super_admin",
+  "inventory_manager",
+  "order_manager",
+  "delivery_manager",
+  "delivery_staff",
+];
+
+export function AdminLoginPage() {
+  const { signIn, signOut, configMissing } = useAuth();
+  const navigate = useNavigate();
+  const [formError, setFormError] = useState<string | null>(null);
+  const form = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
+
+  async function submit(values: LoginValues) {
+    setFormError(null);
+    try {
+      const account = await signIn(values.email, values.password);
+      if (!account.roles.some((role) => staffRoles.includes(role))) {
+        await signOut();
+        setFormError("This account does not have a staff or administrator role.");
+        return;
+      }
+      navigate(dashboardPathForRoles(account.roles), { replace: true });
+    } catch (error) {
+      setFormError(messageOf(error));
+    }
+  }
+
+  return (
+    <AuthCard title="Staff sign in" description="Restricted access for ShopSphere staff and administrators.">
+      {configMissing ? (
+        <AuthConfigurationNotice />
+      ) : (
+        <form className="grid gap-5" onSubmit={form.handleSubmit(submit)}>
+          <TextField
+            label="Work email"
+            type="email"
+            autoComplete="username"
+            {...form.register("email")}
+            error={form.formState.errors.email?.message}
+          />
+          <TextField
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            {...form.register("password")}
+            error={form.formState.errors.password?.message}
+          />
+          {formError && <FormError>{formError}</FormError>}
+          <div className="-mt-2 text-right">
+            <Link className="text-sm font-medium text-primary hover:underline" to="/forgot-password">
+              Forgot password?
+            </Link>
+          </div>
+          <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Signing in..." : "Sign in to staff portal"}
+          </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            <Link className="font-semibold text-primary hover:underline" to="/login">
+              Customer sign in
             </Link>
           </p>
         </form>

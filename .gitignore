@@ -7,3 +7,5 @@ coverage/
 !.env.example
 frontend/.env.local
 backend/.env.local
+backend/.env.example
+frontend/.env.example

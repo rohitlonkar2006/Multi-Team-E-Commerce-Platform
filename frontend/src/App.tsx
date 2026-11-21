@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/auth/AuthProvider";
-import { RequireAdmin, RequireAuth } from "@/auth/RouteGuards";
+import { RequireAdmin, RequireAuth, RequireDashboardRole } from "@/auth/RouteGuards";
 import { SiteLayout } from "@/components/SiteLayout";
 
 const HomePage = lazy(() =>
@@ -25,6 +25,30 @@ const OrdersPage = lazy(() =>
 );
 const OrderDetailsPage = lazy(() =>
   import("@/pages/CheckoutPages").then((module) => ({ default: module.OrderDetailsPage })),
+);
+const WishlistPage = lazy(() =>
+  import("@/pages/WishlistPage").then((module) => ({ default: module.WishlistPage })),
+);
+const PrivacyPage = lazy(() =>
+  import("@/pages/LegalPages").then((module) => ({ default: module.PrivacyPage })),
+);
+const TermsPage = lazy(() =>
+  import("@/pages/LegalPages").then((module) => ({ default: module.TermsPage })),
+);
+const CustomerDashboardPage = lazy(() =>
+  import("@/pages/DashboardPages").then((module) => ({
+    default: module.CustomerDashboardPage,
+  })),
+);
+const AdminDashboardPage = lazy(() =>
+  import("@/pages/DashboardPages").then((module) => ({
+    default: module.AdminDashboardPage,
+  })),
+);
+const StaffWorkspacePage = lazy(() =>
+  import("@/pages/DashboardPages").then((module) => ({
+    default: module.StaffWorkspacePage,
+  })),
 );
 const AdminCategoriesPage = lazy(() =>
   import("@/pages/AdminCategoriesPage").then((module) => ({
@@ -51,6 +75,9 @@ const ResetPasswordPage = lazy(() =>
   import("@/auth/AuthPages").then((module) => ({
     default: module.ResetPasswordPage,
   })),
+);
+const AdminLoginPage = lazy(() =>
+  import("@/auth/AuthPages").then((module) => ({ default: module.AdminLoginPage })),
 );
 
 const queryClient = new QueryClient({
@@ -79,17 +106,32 @@ export default function App() {
                 <Route path="shop" element={<ShopPage />} />
                 <Route path="products/:slug" element={<ProductDetailsPage />} />
                 <Route path="login" element={<LoginPage />} />
+                <Route path="admin/login" element={<AdminLoginPage />} />
                 <Route path="register" element={<RegisterPage />} />
                 <Route path="forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="reset-password" element={<ResetPasswordPage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
+                <Route path="terms" element={<TermsPage />} />
                 <Route element={<RequireAuth />}>
                   <Route path="account" element={<AccountPage />} />
+                  <Route path="account/dashboard" element={<CustomerDashboardPage />} />
                   <Route path="cart" element={<CartPage />} />
+                  <Route path="wishlist" element={<WishlistPage />} />
                   <Route path="orders" element={<OrdersPage />} />
                   <Route path="orders/:orderId" element={<OrderDetailsPage />} />
                   <Route element={<RequireAdmin />}>
+                    <Route path="admin/dashboard" element={<AdminDashboardPage />} />
                     <Route path="admin/products" element={<AdminProductsPage />} />
                     <Route path="admin/categories" element={<AdminCategoriesPage />} />
+                  </Route>
+                  <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "inventory_manager"]} />}>
+                    <Route path="admin/inventory" element={<StaffWorkspacePage />} />
+                  </Route>
+                  <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "order_manager"]} />}>
+                    <Route path="admin/orders" element={<StaffWorkspacePage />} />
+                  </Route>
+                  <Route element={<RequireDashboardRole allowedRoles={["admin", "super_admin", "delivery_manager", "delivery_staff"]} />}>
+                    <Route path="admin/deliveries" element={<StaffWorkspacePage />} />
                   </Route>
                 </Route>
                 <Route

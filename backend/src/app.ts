@@ -14,6 +14,9 @@ import {
 } from "./modules/products/routes.js";
 import { authRoutes, userRoutes } from "./modules/users/routes.js";
 import { cartRoutes, orderRoutes, paymentRoutes } from "./modules/checkout/routes.js";
+import { wishlistRoutes } from "./modules/wishlist/routes.js";
+import { newsletterRoutes } from "./modules/newsletter/routes.js";
+import { adminDashboardRoutes } from "./modules/admin/dashboard.js";
 
 export const app = express();
 
@@ -58,6 +61,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/admin/products", adminProductsRoutes);
 app.use("/api/categories", categoriesRoutes);

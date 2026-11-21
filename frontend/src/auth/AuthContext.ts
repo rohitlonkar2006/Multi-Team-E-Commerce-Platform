@@ -18,12 +18,12 @@ export type AuthContextValue = {
   configMissing: boolean;
   error: string | null;
   isAdmin: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AccountResponse>;
   signUp: (email: string, password: string, fullName: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
-  refreshAccount: () => Promise<void>;
+  refreshAccount: () => Promise<AccountResponse | undefined>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

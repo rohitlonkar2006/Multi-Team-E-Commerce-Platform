@@ -14,6 +14,7 @@ import {
   getProductBySlug,
   listActiveProducts,
   listAdminProducts,
+  listTrendingProducts,
   uploadProductImage,
 } from "./service.js";
 
@@ -49,6 +50,15 @@ export const listProducts: RequestHandler = async (request, response) => {
     return;
   }
   response.json(result.data);
+};
+
+export const listTrending: RequestHandler = async (_request, response) => {
+  const result = await listTrendingProducts();
+  if (result.error) {
+    sendDatabaseError(response, result.error);
+    return;
+  }
+  response.json({ products: result.data });
 };
 
 export const getProduct: RequestHandler = async (request, response) => {

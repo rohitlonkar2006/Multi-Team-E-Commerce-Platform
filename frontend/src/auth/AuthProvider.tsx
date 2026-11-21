@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import { AuthContext, type AuthContextValue, type AccountResponse } from "@/auth/AuthContext";
 import { apiRequest } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(Boolean(supabase));
   const [authError, setAuthError] = useState<string | null>(null);
@@ -63,8 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         false,
       async signIn(email, password) {
         if (!supabase) throw new Error("Supabase is not configured.");
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw new Error(error.message);
+        const account = await apiRequest<AccountResponse>(
+          "/auth/me",
+          data.session.access_token,
+        );
+        queryClient.setQueryData(["account", data.user.id], account);
+        return account;
       },
       async signUp(email, password, fullName) {
         if (!supabase) throw new Error("Supabase is not configured.");
@@ -97,10 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw new Error(error.message);
       },
       async refreshAccount() {
-        if (session) await accountQuery.refetch();
+        if (!session) return undefined;
+        const result = await accountQuery.refetch();
+        if (result.error) throw result.error;
+        return result.data;
       },
     }),
-    [accountQuery, authError, initializing, session],
+    [accountQuery, authError, initializing, queryClient, session],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

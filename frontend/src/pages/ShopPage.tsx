@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { useDeferredValue, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/ProductCard";
 import { apiRequest } from "@/lib/api";
 import { formatPrice, type Category, type ProductListResponse } from "@/modules/products/types";
 
@@ -16,8 +17,21 @@ function ErrorState({ message }: { message: string }) {
 }
 
 export function ShopPage() {
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const search = searchParams.get("q") ?? "";
+  const categoryId = searchParams.get("categoryId") ?? "";
+  function setSearch(value: string) {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("q", value);
+    else nextParams.delete("q");
+    setSearchParams(nextParams, { replace: true });
+  }
+  function setCategoryId(value: string) {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("categoryId", value);
+    else nextParams.delete("categoryId");
+    setSearchParams(nextParams, { replace: true });
+  }
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState("newest");
@@ -64,6 +78,7 @@ export function ShopPage() {
           <Search size={17} className="text-muted-foreground" />
           <span className="sr-only">Search products</span>
           <input
+            id="catalog-search"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
@@ -154,6 +169,7 @@ export function ShopPage() {
               setCategoryId("");
               setMinPrice("");
               setMaxPrice("");
+              setSearchParams({});
               setPage(1);
             }}
           >
@@ -163,42 +179,7 @@ export function ShopPage() {
       ) : (
         <div className="mt-8 grid gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
-            <Link
-              key={product.id}
-              to={`/products/${product.slug}`}
-              className="group min-w-0"
-            >
-              <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-white">
-                {product.image_url ? (
-                  <img
-                    src={product.image_url}
-                    alt={product.name}
-                    className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="grid size-full place-items-center text-sm text-muted-foreground">
-                    Image coming soon
-                  </div>
-                )}
-                {!product.in_stock && (
-                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-                    Out of stock
-                  </span>
-                )}
-              </div>
-              <div className="mt-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{product.name}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {product.categories?.name ?? "Curated"}
-                  </p>
-                </div>
-                <p className="shrink-0 text-sm font-semibold">
-                  {formatPrice(product.price, product.currency)}
-                </p>
-              </div>
-            </Link>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}

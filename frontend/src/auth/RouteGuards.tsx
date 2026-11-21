@@ -31,3 +31,14 @@ export function RequireAdmin() {
   if (!isAdmin) return <GuardMessage>Administrator access is required.</GuardMessage>;
   return <Outlet />;
 }
+
+export function RequireDashboardRole({ allowedRoles }: { allowedRoles: string[] }) {
+  const { account, loading, error } = useAuth();
+
+  if (loading) return <GuardMessage>Checking dashboard access…</GuardMessage>;
+  if (error) return <GuardMessage>Could not verify your account: {error}</GuardMessage>;
+  if (!account?.roles.some((role) => allowedRoles.includes(role))) {
+    return <GuardMessage>You do not have access to this dashboard.</GuardMessage>;
+  }
+  return <Outlet />;
+}

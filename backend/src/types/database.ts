@@ -288,6 +288,26 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: Json;
       };
+      get_trending_product_ids: {
+        Args: { p_limit?: number };
+        Returns: { product_id: string }[];
+      };
+      get_my_wishlist: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      add_to_wishlist: {
+        Args: { p_product_id: string };
+        Returns: Json;
+      };
+      remove_from_wishlist: {
+        Args: { p_product_id: string };
+        Returns: Json;
+      };
+      subscribe_newsletter: {
+        Args: { p_email: string };
+        Returns: boolean;
+      };
       add_cart_item: {
         Args: { p_product_id: string; p_quantity: number };
         Returns: Json;
@@ -318,6 +338,10 @@ export type Database = {
         Returns: Json;
       };
       get_my_orders: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      get_admin_dashboard: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
       };

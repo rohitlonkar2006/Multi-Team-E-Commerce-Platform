@@ -15,6 +15,7 @@ export const requireAdmin: RequestHandler = async (request, response, next) => {
     .select("role")
     .eq("user_id", user.id)
     .in("role", ["admin", "super_admin"])
+    .limit(1)
     .maybeSingle();
 
   if (error) {
