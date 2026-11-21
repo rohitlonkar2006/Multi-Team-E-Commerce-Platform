@@ -1,0 +1,9 @@
+project-info/
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+frontend/.env.local
+backend/.env.local
