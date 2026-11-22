@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { type ErrorRequestHandler } from "express";
-import helmet from "helmet";
+import * as helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { MulterError } from "multer";
 import { env } from "./config/env.js";
@@ -26,7 +26,7 @@ import {
 export const app = express();
 
 app.disable("x-powered-by");
-app.use(helmet());
+app.use(helmet.default());
 app.use(
   cors({
     origin: (origin, callback) => {
