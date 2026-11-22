@@ -50,7 +50,7 @@ function ErrorNotice({ message }: { message: string }) {
   return <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>;
 }
 
-export function AdminProductsPage() {
+export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: boolean }) {
   const { session } = useAuth();
   const token = session?.access_token;
   const queryClient = useQueryClient();
@@ -70,6 +70,7 @@ export function AdminProductsPage() {
   const categoriesQuery = useQuery({
     queryKey: ["admin-categories"],
     queryFn: () => apiRequest<{ categories: Category[] }>("/admin/categories", token),
+    enabled: !inventoryOnly,
   });
 
   useEffect(() => {
@@ -172,21 +173,31 @@ export function AdminProductsPage() {
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Team 2 · Product Management</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Products & inventory</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Manage live catalogue records from Supabase.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">
+            {inventoryOnly ? "Staff portal · Inventory manager" : "Administration · Product management"}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+            {inventoryOnly ? "Inventory workspace" : "Products & inventory"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {inventoryOnly
+              ? "Review the live catalogue and update stock quantities."
+              : "Manage live catalogue records from Supabase."}
+          </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => document.getElementById("product-form")?.scrollIntoView({ behavior: "smooth" })}
-        >
-          <Plus size={16} /> Add product
-        </Button>
+        {!inventoryOnly && (
+          <Button
+            variant="outline"
+            onClick={() => document.getElementById("product-form")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <Plus size={16} /> Add product
+          </Button>
+        )}
       </div>
 
       {error && <div className="mt-6"><ErrorNotice message={error.message} /></div>}
 
-      <section id="product-form" className="mt-7 rounded-2xl border border-border bg-white p-5 sm:p-7">
+      {!inventoryOnly && <section id="product-form" className="mt-7 rounded-2xl border border-border bg-white p-5 sm:p-7">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold">{editing ? "Edit product" : "Add a product"}</h2>
@@ -234,7 +245,7 @@ export function AdminProductsPage() {
             </Button>
           </div>
         </form>
-      </section>
+      </section>}
 
       <section className="mt-8">
         <div className="mb-4 flex items-center justify-between gap-4">
@@ -313,53 +324,59 @@ export function AdminProductsPage() {
                     {stockErrors[product.id] && (
                       <span role="alert" className="text-xs text-red-700">{stockErrors[product.id]}</span>
                     )}
-                    <label className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2 text-xs font-medium">
-                      <ImagePlus size={14} /> Image
-                      <input
-                        className="sr-only"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          if (file) setImageFiles((current) => ({ ...current, [product.id]: file }));
-                        }}
-                      />
-                    </label>
-                    {imageFiles[product.id] && (
-                      <Button size="sm" variant="outline" onClick={() => uploadImage.mutate(product)}>
-                        Upload
-                      </Button>
+                    {!inventoryOnly && (
+                      <>
+                        <label className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-border px-2 text-xs font-medium">
+                          <ImagePlus size={14} /> Image
+                          <input
+                            className="sr-only"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              if (file) setImageFiles((current) => ({ ...current, [product.id]: file }));
+                            }}
+                          />
+                        </label>
+                        {imageFiles[product.id] && (
+                          <Button size="sm" variant="outline" onClick={() => uploadImage.mutate(product)}>
+                            Upload
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 sm:justify-end">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(product)}>
-                    <Pencil size={14} /> Edit
-                  </Button>
-                  {product.is_active ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={removeProduct.isPending}
-                      onClick={() => {
-                        if (window.confirm(`Hide "${product.name}" from the shop?`)) {
-                          removeProduct.mutate(product.id);
-                        }
-                      }}
-                    >
-                      Hide
+                {!inventoryOnly && (
+                  <div className="flex gap-2 sm:justify-end">
+                    <Button size="sm" variant="outline" onClick={() => setEditing(product)}>
+                      <Pencil size={14} /> Edit
                     </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={restoreProduct.isPending}
-                      onClick={() => restoreProduct.mutate(product.id)}
-                    >
-                      Show
-                    </Button>
-                  )}
-                </div>
+                    {product.is_active ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={removeProduct.isPending}
+                        onClick={() => {
+                          if (window.confirm(`Hide "${product.name}" from the shop?`)) {
+                            removeProduct.mutate(product.id);
+                          }
+                        }}
+                      >
+                        Hide
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={restoreProduct.isPending}
+                        onClick={() => restoreProduct.mutate(product.id)}
+                      >
+                        Show
+                      </Button>
+                    )}
+                  </div>
+                )}
               </article>
             ))}
           </div>

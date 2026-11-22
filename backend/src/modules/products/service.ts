@@ -15,6 +15,33 @@ type ProductListQuery = {
 
 const productSelection =
   "id,category_id,sku,name,slug,description,price,currency,image_url,is_active,created_at,updated_at,categories(id,name,slug)";
+type ProductWithImageUrl = { id: string; image_url: string | null };
+
+async function applyPrimaryProductImages<T extends ProductWithImageUrl>(
+  client: SupabaseClient<Database>,
+  products: T[],
+) {
+  if (!products.length) return { data: products, error: null };
+
+  const { data: images, error } = await client
+    .from("product_images")
+    .select("product_id,image_url")
+    .in("product_id", products.map(({ id }) => id))
+    .eq("is_primary", true);
+  if (error) return { data: null, error };
+
+  const primaryImages = new Map(
+    images.map((image) => [image.product_id, image.image_url]),
+  );
+  return {
+    data: products.map((product) => ({
+      ...product,
+      image_url: primaryImages.get(product.id) ?? product.image_url,
+    })),
+    error: null,
+  };
+}
+
 const productSortColumns: Record<
   ProductListQuery["sort"],
   { column: "created_at" | "price" | "name"; ascending: boolean }
@@ -48,7 +75,11 @@ export async function listActiveProducts(filters: ProductListQuery) {
     .range(from, from + filters.pageSize - 1);
   if (error) return { data: null, error };
 
-  const productIds = (data ?? []).map((product) => product.id);
+  const productsWithImages = await applyPrimaryProductImages(client, data ?? []);
+  if (productsWithImages.error) {
+    return { data: null, error: productsWithImages.error };
+  }
+  const productIds = productsWithImages.data.map((product) => product.id);
   const availabilityResult =
     productIds.length > 0
       ? await client
@@ -65,7 +96,7 @@ export async function listActiveProducts(filters: ProductListQuery) {
   );
   return {
     data: {
-      products: (data ?? []).map((product) => ({
+      products: productsWithImages.data.map((product) => ({
         ...product,
         in_stock: stockById.get(product.id) ?? false,
       })),
@@ -95,6 +126,10 @@ export async function listTrendingProducts() {
     .in("id", productIds);
   if (error) return { data: null, error };
 
+  const productsWithImages = await applyPrimaryProductImages(client, data ?? []);
+  if (productsWithImages.error) {
+    return { data: null, error: productsWithImages.error };
+  }
   const availabilityResult = await client
     .from("product_stock_status")
     .select("product_id,in_stock")
@@ -104,7 +139,7 @@ export async function listTrendingProducts() {
   }
 
   const productsById = new Map(
-    (data ?? []).map((product) => [product.id, product]),
+    productsWithImages.data.map((product) => [product.id, product]),
   );
   const stockById = new Map(
     (availabilityResult.data ?? []).map((stock) => [stock.product_id, stock.in_stock]),
@@ -161,7 +196,11 @@ export async function listAdminProducts(client: SupabaseClient<Database>) {
     .order("created_at", { ascending: false });
   if (error) return { data: null, error };
 
-  const productIds = (data ?? []).map((product) => product.id);
+  const productsWithImages = await applyPrimaryProductImages(client, data ?? []);
+  if (productsWithImages.error) {
+    return { data: null, error: productsWithImages.error };
+  }
+  const productIds = productsWithImages.data.map((product) => product.id);
   const inventoryResult =
     productIds.length > 0
       ? await client
@@ -177,7 +216,7 @@ export async function listAdminProducts(client: SupabaseClient<Database>) {
     (inventoryResult.data ?? []).map((item) => [item.product_id, item.quantity]),
   );
   return {
-    data: (data ?? []).map((product) => ({
+    data: productsWithImages.data.map((product) => ({
       ...product,
       quantity: inventoryById.get(product.id) ?? 0,
     })),

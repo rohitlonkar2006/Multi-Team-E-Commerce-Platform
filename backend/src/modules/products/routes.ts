@@ -3,6 +3,7 @@ import multer from "multer";
 import { ApiError } from "../../lib/api-error.js";
 import { authenticate } from "../../middleware/authenticate.js";
 import { requireAdmin } from "../../middleware/require-admin.js";
+import { requireRoles } from "../../middleware/require-roles.js";
 import {
   createCategory,
   createProduct,
@@ -39,13 +40,32 @@ productsRoutes.get("/trending", listTrending);
 productsRoutes.get("/:slug", getProduct);
 
 export const adminProductsRoutes = Router();
-adminProductsRoutes.use(authenticate, requireAdmin);
-adminProductsRoutes.get("/", listAdminProductsController);
-adminProductsRoutes.post("/", createProduct);
-adminProductsRoutes.put("/:id", updateProduct);
-adminProductsRoutes.delete("/:id", deleteProduct);
-adminProductsRoutes.patch("/:id/inventory", updateInventory);
-adminProductsRoutes.post("/:id/image", imageUpload.single("image"), uploadImage);
+adminProductsRoutes.use(authenticate);
+adminProductsRoutes.get(
+  "/",
+  requireRoles(
+    ["admin", "super_admin", "inventory_manager"],
+    "Inventory management access is required.",
+  ),
+  listAdminProductsController,
+);
+adminProductsRoutes.post("/", requireAdmin, createProduct);
+adminProductsRoutes.put("/:id", requireAdmin, updateProduct);
+adminProductsRoutes.delete("/:id", requireAdmin, deleteProduct);
+adminProductsRoutes.patch(
+  "/:id/inventory",
+  requireRoles(
+    ["admin", "super_admin", "inventory_manager"],
+    "Inventory management access is required.",
+  ),
+  updateInventory,
+);
+adminProductsRoutes.post(
+  "/:id/image",
+  requireAdmin,
+  imageUpload.single("image"),
+  uploadImage,
+);
 
 export const categoriesRoutes = Router();
 categoriesRoutes.get("/", listCategories);

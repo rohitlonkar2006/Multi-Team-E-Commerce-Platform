@@ -6,7 +6,7 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  dashboard_json jsonb;
+  dashboard_json jsonb;--
 begin
   if (select auth.uid()) is null then
     raise exception 'Authentication is required' using errcode = '42501';

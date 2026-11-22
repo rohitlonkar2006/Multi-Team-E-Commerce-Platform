@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
@@ -26,6 +27,17 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/api";
+
+const InventoryWorkspace = lazy(() =>
+  import("@/pages/AdminProductsPage").then((module) => ({
+    default: module.AdminProductsPage,
+  })),
+);
+const OrderWorkspace = lazy(() =>
+  import("@/pages/AdminManagementPage").then((module) => ({
+    default: module.AdminOrdersPage,
+  })),
+);
 
 type CustomerOrder = {
   id: string;
@@ -410,25 +422,23 @@ export function AdminDashboardPage() {
 
 export function StaffWorkspacePage() {
   const { pathname } = useLocation();
-  const workspace =
-    pathname.endsWith("/inventory")
-      ? { title: "Inventory workspace", role: "Inventory manager", description: "Inventory controls are restricted to accounts assigned the inventory manager role." }
-      : pathname.endsWith("/orders")
-        ? { title: "Order workspace", role: "Order manager", description: "Order operations are restricted to accounts assigned the order manager role." }
-        : { title: "Delivery workspace", role: "Delivery operations", description: "Delivery operations are restricted to assigned delivery staff and delivery managers." };
-
+  if (pathname.endsWith("/inventory")) {
+    return (
+      <Suspense fallback={<main className="p-10 text-sm text-muted-foreground">Loading inventory...</main>}>
+        <InventoryWorkspace inventoryOnly />
+      </Suspense>
+    );
+  }
+  if (pathname.endsWith("/orders")) {
+    return (
+      <Suspense fallback={<main className="p-10 text-sm text-muted-foreground">Loading orders...</main>}>
+        <OrderWorkspace staffMode />
+      </Suspense>
+    );
+  }
   return (
     <main className="mx-auto max-w-4xl px-6 py-12 lg:px-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Staff portal · {workspace.role}</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">{workspace.title}</h1>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{workspace.description}</p>
-      <section className="mt-7 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
-        <h2 className="font-semibold">Workspace not enabled yet</h2>
-        <p className="mt-1">
-          Your role is checked before this page is shown, but its operational data and actions are not
-          connected yet. No inventory, customer order, or delivery information is displayed here.
-        </p>
-      </section>
+      <h1 className="text-2xl font-semibold">This staff workspace is unavailable.</h1>
       <Button asChild variant="outline" className="mt-5"><Link to="/">Return to storefront</Link></Button>
     </main>
   );

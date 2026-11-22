@@ -31,15 +31,25 @@ const assignableRoles = [
   "delivery_staff",
 ];
 
-function AdminPageHeader({ title, description }: { title: string; description: string }) {
+function AdminPageHeader({
+  title,
+  description,
+  showDashboardLink = true,
+}: {
+  title: string;
+  description: string;
+  showDashboardLink?: boolean;
+}) {
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Administration</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{description}</p>
-      <Link to="/admin/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
-        Back to dashboard
-      </Link>
+      {showDashboardLink && (
+        <Link to="/admin/dashboard" className="mt-3 inline-block text-sm font-semibold text-primary hover:underline">
+          Back to dashboard
+        </Link>
+      )}
     </div>
   );
 }
@@ -56,7 +66,7 @@ function formatAmount(amount: number, currency: string) {
   }).format(amount);
 }
 
-export function AdminOrdersPage() {
+export function AdminOrdersPage({ staffMode = false }: { staffMode?: boolean }) {
   const { session } = useAuth();
   const client = useQueryClient();
   const [search, setSearch] = useState("");
@@ -82,7 +92,11 @@ export function AdminOrdersPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
-      <AdminPageHeader title="Order management" description="Review recent orders and update their fulfilment status." />
+      <AdminPageHeader
+        title={staffMode ? "Order workspace" : "Order management"}
+        description="Review recent orders and update their fulfilment status."
+        showDashboardLink={!staffMode}
+      />
       <section className="mt-7 rounded-2xl border border-border bg-white p-5 sm:p-6">
         <label className="grid max-w-md gap-2 text-sm font-medium">
           Search orders
@@ -223,9 +237,15 @@ export function AdminUsersPage() {
                                   checked={enabled}
                                   disabled={
                                     changeRole.isPending ||
+                                    (role === "delivery_staff" && !enabled) ||
                                     (user.user_id === account?.user.id &&
                                       role === "admin" &&
                                       enabled)
+                                  }
+                                  title={
+                                    role === "delivery_staff" && !enabled
+                                      ? "Use Delivery Management to invite delivery staff."
+                                      : undefined
                                   }
                                   onChange={(event) => changeRole.mutate({ userId: user.user_id, role, enabled: event.target.checked })}
                                 />
@@ -243,7 +263,7 @@ export function AdminUsersPage() {
             <p className="mt-3 text-xs text-muted-foreground">
               {view === "customers"
                 ? "Customer email addresses are not displayed. Only the 200 most recently created profiles are shown."
-                : "Only the 200 most recently created profiles are shown. Assign only the access each staff member needs."}
+                : "Only the 200 most recently created profiles are shown. Assign only the access each staff member needs. Create delivery staff through Delivery Management so their delivery profile is provisioned."}
             </p>
           </div>
         )}

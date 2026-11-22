@@ -274,6 +274,15 @@ export const assignDelivery: RequestHandler = async (request, response) => {
 export const getDeliveryDashboard: RequestHandler = async (request, response) => {
   const { data, error } = await request.supabase!.rpc("get_my_delivery_dashboard");
   if (error) {
+    if (
+      error.code === "P0002" &&
+      error.message === "Delivery staff profile was not found"
+    ) {
+      response.status(409).json({
+        error: "Your delivery profile is not set up. Ask an administrator to invite you through Delivery Management.",
+      });
+      return;
+    }
     sendDatabaseError(response, error);
     return;
   }
