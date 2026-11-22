@@ -43,6 +43,17 @@ npm run dev:web
 
 The storefront checks API status when it loads and avoids continuous health polling.
 
+## Vercel deployment
+
+Deploy `frontend/` and `backend/` as separate Vercel projects. The frontend Vercel rewrite proxies `/api/*` to `https://shopsphere-api.vercel.app/api/*`; update that destination if the backend project uses a different domain. The backend's `api/[...route].ts` exposes the Express API as a serverless function.
+
+Set these variables in the corresponding Vercel project settings before deploying:
+
+- Backend: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `FRONTEND_URL` (the deployed frontend URL, including `https://`).
+- Frontend: `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+
+Keep the service-role key backend-only. Do not upload local `.env` files or commit credentials. Add the deployed frontend URL and its `/account` and `/reset-password` routes to the Supabase Auth URL configuration.
+
 ## Supabase setup
 
 1. Create/use the team's existing Supabase project.

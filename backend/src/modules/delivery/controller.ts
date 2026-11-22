@@ -70,10 +70,54 @@ export const createDeliveryStaff: RequestHandler = async (request, response) => 
     redirectTo: `${env.FRONTEND_URL}/reset-password`,
   });
   if (error || !data.user) {
-    response.status(error?.message.toLowerCase().includes("already") ? 409 : 502).json({
-      error: error?.message.toLowerCase().includes("already")
-        ? "An account with that email already exists."
-        : "The delivery invitation could not be sent.",
+    const errorCode = error?.code?.toLowerCase() ?? "";
+    const errorMessage = error?.message.toLowerCase() ?? "";
+    const alreadyExists =
+      errorCode === "email_exists" ||
+      errorCode === "user_already_exists" ||
+      errorMessage.includes("already registered") ||
+      errorMessage.includes("already exists");
+    const rateLimited =
+      errorCode.includes("rate_limit") ||
+      errorCode.includes("over_email_send_rate_limit") ||
+      errorMessage.includes("rate limit") ||
+      errorMessage.includes("too many requests");
+    const redirectRejected =
+      errorMessage.includes("redirect") &&
+      (errorMessage.includes("allow") || errorMessage.includes("url"));
+    const invalidServiceKey =
+      errorMessage.includes("invalid api key") ||
+      errorMessage.includes("invalid jwt") ||
+      errorMessage.includes("unauthorized");
+    const emailProviderFailure =
+      errorMessage.includes("smtp") ||
+      errorMessage.includes("email") ||
+      errorMessage.includes("sending");
+
+    if (error) {
+      console.error("Supabase delivery invitation failed.", {
+        code: error.code,
+        status: error.status,
+        message: error.message.replaceAll(email, "[redacted email]"),
+      });
+    } else {
+      console.error("Supabase returned no user for a delivery invitation.");
+    }
+
+    response.status(
+      alreadyExists ? 409 : rateLimited ? 429 : invalidServiceKey ? 503 : 502,
+    ).json({
+      error: alreadyExists
+        ? "An account with that email already exists. Use a different email or manage the existing account."
+        : rateLimited
+          ? "Supabase has temporarily rate-limited invitation emails. Wait before trying again."
+          : redirectRejected
+            ? `Supabase rejected the invitation redirect. Add ${env.FRONTEND_URL}/reset-password to the Auth redirect URL allow list.`
+            : invalidServiceKey
+              ? "The backend Supabase service-role key was rejected. Verify SUPABASE_SERVICE_ROLE_KEY and restart the API."
+              : emailProviderFailure
+                ? "Supabase could not send the invitation email. Check the Auth email provider and invitation template settings."
+                : "The delivery invitation could not be sent. Check the API logs for the Supabase Auth error.",
     });
     return;
   }
