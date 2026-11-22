@@ -146,6 +146,8 @@ export function SiteLayout() {
                     {isAdmin && (
                       <>
                         <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/products" onClick={closeMenus}>Product Management</Link>
+                        <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/order-management" onClick={closeMenus}>Order Management</Link>
+                        <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/customers" onClick={closeMenus}>Customers & Staff</Link>
                         <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/categories" onClick={closeMenus}><FolderTree size={14} className="mr-2 inline" />Categories</Link>
                         <Link className="rounded-xl px-3 py-2 text-sm hover:bg-background" to="/admin/deliveries" onClick={closeMenus}><ShoppingBag size={14} className="mr-2 inline" />Delivery Management</Link>
                       </>
@@ -267,7 +269,8 @@ export function SiteLayout() {
             <Link className="text-muted-foreground hover:text-primary" to="/account/dashboard">Dashboard</Link>
             <Link className="text-muted-foreground hover:text-primary" to="/orders">My orders</Link>
             <Link className="text-muted-foreground hover:text-primary" to="/wishlist">Wishlist</Link>
-            <Link className="text-muted-foreground hover:text-primary" to="/admin/login">Staff sign in</Link>
+            <Link className="text-muted-foreground hover:text-primary" to="/staff/login">Staff sign in</Link>
+            <Link className="text-muted-foreground hover:text-primary" to="/admin/login">Administrator sign in</Link>
           </div>
           <div className="grid content-start gap-2 text-sm">
             <p className="mb-1 font-semibold">Information</p>

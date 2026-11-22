@@ -46,6 +46,16 @@ const AdminDashboardPage = lazy(() =>
     default: module.AdminDashboardPage,
   })),
 );
+const AdminOrdersPage = lazy(() =>
+  import("@/pages/AdminManagementPage").then((module) => ({
+    default: module.AdminOrdersPage,
+  })),
+);
+const AdminUsersPage = lazy(() =>
+  import("@/pages/AdminManagementPage").then((module) => ({
+    default: module.AdminUsersPage,
+  })),
+);
 const StaffWorkspacePage = lazy(() =>
   import("@/pages/DashboardPages").then((module) => ({
     default: module.StaffWorkspacePage,
@@ -90,6 +100,9 @@ const ResetPasswordPage = lazy(() =>
 const AdminLoginPage = lazy(() =>
   import("@/auth/AuthPages").then((module) => ({ default: module.AdminLoginPage })),
 );
+const StaffLoginPage = lazy(() =>
+  import("@/auth/AuthPages").then((module) => ({ default: module.StaffLoginPage })),
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -120,6 +133,7 @@ export default function App() {
                 <Route path="products/:slug" element={<ProductDetailsPage />} />
                 <Route path="login" element={<LoginPage />} />
                 <Route path="admin/login" element={<AdminLoginPage />} />
+                <Route path="staff/login" element={<StaffLoginPage />} />
                 <Route path="register" element={<RegisterPage />} />
                 <Route path="forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="reset-password" element={<ResetPasswordPage />} />
@@ -136,6 +150,8 @@ export default function App() {
                   <Route path="orders/:orderId" element={<OrderDetailsPage />} />
                   <Route element={<RequireAdmin />}>
                     <Route path="admin/dashboard" element={<AdminDashboardPage />} />
+                    <Route path="admin/order-management" element={<AdminOrdersPage />} />
+                    <Route path="admin/customers" element={<AdminUsersPage />} />
                     <Route path="admin/products" element={<AdminProductsPage />} />
                     <Route path="admin/categories" element={<AdminCategoriesPage />} />
                   </Route>

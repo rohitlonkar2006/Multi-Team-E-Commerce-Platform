@@ -4,10 +4,12 @@ import {
   ArrowUpRight,
   Box,
   ClipboardList,
+  Download,
   Heart,
   PackageCheck,
   ShoppingBag,
   UserRound,
+  Users,
 } from "lucide-react";
 import {
   Area,
@@ -243,6 +245,38 @@ export function AdminDashboardPage() {
   });
   const data = analyticsQuery.data?.analytics;
 
+  function downloadReport() {
+    if (!data) return;
+    const rows = [
+      ["Report", "Label", "Value"],
+      ["Summary", "Successful revenue", data.totalRevenue],
+      ["Summary", "Orders", data.totalOrders],
+      ["Summary", "Customers", data.totalCustomers],
+      ["Summary", "Active products", data.totalProducts],
+      ["Monthly revenue", "Month", "Revenue"],
+      ...data.monthlyRevenue.map((row) => ["Monthly revenue", row.month, row.revenue]),
+      ["Weekly orders", "Day", "Orders"],
+      ...data.weeklyOrders.map((row) => ["Weekly orders", row.day, row.orders]),
+      ["Category revenue", "Category", "Revenue"],
+      ...data.salesByCategory.map((row) => ["Category revenue", row.category, row.revenue]),
+      ["Top products", "Product", "Quantity"],
+      ...data.topProducts.map((row) => ["Top products", row.product, row.quantity]),
+      ["Order statuses", "Status", "Count"],
+      ...data.orderStatuses.map((row) => ["Order statuses", row.status, row.count]),
+      ["Payment methods", "Method", "Count"],
+      ...data.paymentMethods.map((row) => ["Payment methods", row.method, row.count]),
+    ];
+    const csv = rows.map((row) =>
+      row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
+    ).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "shopsphere-admin-report.csv";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -252,6 +286,11 @@ export function AdminDashboardPage() {
           <p className="mt-2 text-sm text-muted-foreground">Live totals and trends from your ShopSphere database.</p>
         </div>
         <nav className="flex flex-wrap gap-2" aria-label="Administration">
+          <Button type="button" variant="outline" size="sm" onClick={downloadReport} disabled={!data}>
+            <Download size={15} className="mr-2" />Export report
+          </Button>
+          <Button asChild variant="outline" size="sm"><Link to="/admin/order-management"><ClipboardList size={15} className="mr-2" />Orders</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/admin/customers"><Users size={15} className="mr-2" />Customers & staff</Link></Button>
           <Button asChild variant="outline" size="sm"><Link to="/admin/products"><Box size={15} className="mr-2" />Products</Link></Button>
           <Button asChild variant="outline" size="sm"><Link to="/admin/categories">Categories</Link></Button>
           <Button asChild variant="outline" size="sm"><Link to="/admin/deliveries"><PackageCheck size={15} className="mr-2" />Delivery</Link></Button>

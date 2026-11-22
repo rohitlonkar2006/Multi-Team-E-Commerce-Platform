@@ -69,6 +69,19 @@ describe("API foundation", () => {
     expect(response.body).toEqual({ error: "Authentication is required." });
   });
 
+  it("requires authentication for admin orders and account management", async () => {
+    const responses = await Promise.all([
+      request(app).get("/api/admin/orders"),
+      request(app).patch("/api/admin/orders/not-an-id").send({ status: "shipped" }),
+      request(app).get("/api/admin/users"),
+      request(app)
+        .patch("/api/admin/users/not-an-id/roles")
+        .send({ role: "admin", enabled: true }),
+    ]);
+
+    expect(responses.map(({ status }) => status)).toEqual([401, 401, 401, 401]);
+  });
+
   it("requires authentication for delivery dashboards, uploads, and admin operations", async () => {
     const responses = await Promise.all([
       request(app).get("/api/delivery/dashboard"),

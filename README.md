@@ -8,6 +8,7 @@ ShopSphere is a full-stack academic e-commerce project. The backend is a **Node.
 - `backend/`: Node.js + Express + TypeScript, with environment validation, CORS, security headers, API rate limiting, and a health endpoint.
 - `backend/`: authenticated profile/address APIs; public catalogue reads; admin-only product, category, inventory, and image operations.
 - `frontend/`: registration, sign-in, email verification, password recovery, profile/address management, product catalogue/details, and admin product/category pages.
+- Dedicated role-checked administrator (`/admin/login`) and staff (`/staff/login`) sign-in screens.
 - Authenticated cart and checkout with server-priced order snapshots, stock validation, idempotent requests, simulated payment outcomes, and order history.
 - Separate customer, administrator, and delivery-partner dashboards. Administrators invite delivery accounts and review private license uploads; approved partners see and update only their assigned deliveries.
 - `supabase/`: ordered PostgreSQL migrations with RLS, profiles, roles, addresses, catalogue and inventory, checkout, private delivery-license storage, service zones, assignment, and status history.
@@ -50,6 +51,8 @@ The storefront checks API status when it loads and avoids continuous health poll
    - `supabase/migrations/20261121190000_user_product_modules.sql`
    - `supabase/migrations/20261121200000_cart_checkout_orders.sql`
    - `supabase/migrations/20261122000000_delivery_operations.sql`
+   - `supabase/migrations/20261123000000_admin_operations.sql` (run after creating the admin Auth user below)
+   - `supabase/migrations/20261123100000_fix_admin_dashboard_analytics.sql` (run last)
    After the initial and user/product schema migrations are present, run `supabase/seed.sql` to add 10 categories and 100 image-backed sample products. Sample inventory is set only for newly inserted products; rerunning the seed does not restock existing products.
    The configured project already exposes the profile/product/user-product schema, so do not rerun those non-idempotent migrations. The cart/order migration can be rerun after a partial application; apply the delivery migration after it and verify its tables/functions in Supabase.
 3. Copy the project URL and **publishable** key from the Supabase project settings into both local env files:
@@ -60,15 +63,25 @@ The storefront checks API status when it loads and avoids continuous health poll
 
 The database trigger creates a profile and customer role for new Auth users. No admin is created automatically. Admin roles must be assigned by a trusted project administrator; never allow a user to grant themselves admin access.
 
-To grant the initial admin role, a trusted Supabase project owner can run this in the SQL Editor after the user has registered, replacing the example email:
+To create the requested initial admin, configure the backend `.env` with the Supabase URL and service-role key, then run this from an interactive terminal:
+
+```powershell
+npm run admin:provision --workspace=backend
+```
+
+The provisioner creates or updates `lonkarravi00@gmail.com`, grants the admin role, and prompts twice for the password without echoing it. If the previous `lonkarrohit77@gmail.com` account exists, it updates that account's email and password. It refuses to print or store the password. Alternatively, create or update the Auth user in the Supabase dashboard first, then run `supabase/migrations/20261123000000_admin_operations.sql`; the migration grants the admin role to that existing email and fails clearly if no matching Auth user exists.
+
+If you need to grant the role separately, a trusted project owner can run:
 
 ```sql
 insert into public.user_roles (user_id, role)
 select id, 'admin'
 from auth.users
-where email = 'admin@example.com'
+where lower(email) = lower('lonkarravi00@gmail.com')
 on conflict (user_id, role) do nothing;
 ```
+
+Sign in at `/admin/login`. Do not put the password in source code, SQL, or committed documentation. The admin dashboard includes recent order status management, customer/staff role views, links to the existing inventory tools, and CSV sales reports.
 
 **Never place a Supabase secret/service-role key in frontend code or commit credentials.** Delivery account invitations and private license-file operations require `SUPABASE_SERVICE_ROLE_KEY` in the backend only. Normal database operations use the publishable key plus the verified user's access token, and role-checked database functions enforce delivery assignment and status changes. Only publishable credentials belong in the frontend. `.env` files are ignored by Git and example files contain blank credentials.
 

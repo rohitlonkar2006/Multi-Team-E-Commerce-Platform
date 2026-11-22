@@ -142,16 +142,31 @@ export function LoginPage() {
   );
 }
 
+const adminRoles = ["admin", "super_admin"];
 const staffRoles = [
-  "admin",
-  "super_admin",
   "inventory_manager",
   "order_manager",
   "delivery_manager",
   "delivery_staff",
 ];
 
-export function AdminLoginPage() {
+function PortalLoginPage({
+  title,
+  description,
+  buttonLabel,
+  deniedMessage,
+  allowedRoles,
+  alternatePath,
+  alternateLabel,
+}: {
+  title: string;
+  description: string;
+  buttonLabel: string;
+  deniedMessage: string;
+  allowedRoles: string[];
+  alternatePath: string;
+  alternateLabel: string;
+}) {
   const { signIn, signOut, configMissing } = useAuth();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
@@ -161,19 +176,25 @@ export function AdminLoginPage() {
     setFormError(null);
     try {
       const account = await signIn(values.email, values.password);
-      if (!account.roles.some((role) => staffRoles.includes(role))) {
+      if (!account.roles.some((role) => allowedRoles.includes(role))) {
         await signOut();
-        setFormError("This account does not have a staff or administrator role.");
+        const assignedRoles = account.roles.length ? account.roles.join(", ") : "none";
+        setFormError(`${deniedMessage} Roles currently assigned: ${assignedRoles}.`);
         return;
       }
-      navigate(dashboardPathForRoles(account.roles), { replace: true });
+      navigate(
+        dashboardPathForRoles(
+          account.roles.filter((role) => allowedRoles.includes(role)),
+        ),
+        { replace: true },
+      );
     } catch (error) {
       setFormError(messageOf(error));
     }
   }
 
   return (
-    <AuthCard title="Staff sign in" description="Restricted access for ShopSphere staff and administrators.">
+    <AuthCard title={title} description={description}>
       {configMissing ? (
         <AuthConfigurationNotice />
       ) : (
@@ -199,16 +220,50 @@ export function AdminLoginPage() {
             </Link>
           </div>
           <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Signing in..." : "Sign in to staff portal"}
+            {form.formState.isSubmitting ? "Signing in..." : buttonLabel}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             <Link className="font-semibold text-primary hover:underline" to="/login">
               Customer sign in
             </Link>
           </p>
+          <p className="-mt-3 text-center text-sm text-muted-foreground">
+            Looking for another portal?{" "}
+            <Link className="font-semibold text-primary hover:underline" to={alternatePath}>
+              {alternateLabel}
+            </Link>
+          </p>
         </form>
       )}
     </AuthCard>
+  );
+}
+
+export function AdminLoginPage() {
+  return (
+    <PortalLoginPage
+      title="Administrator sign in"
+      description="Restricted access for ShopSphere administrators."
+      buttonLabel="Sign in to admin portal"
+      deniedMessage="This account is not assigned an administrator role. A Supabase project owner must grant admin access before it can use this portal."
+      allowedRoles={adminRoles}
+      alternatePath="/staff/login"
+      alternateLabel="Staff sign in"
+    />
+  );
+}
+
+export function StaffLoginPage() {
+  return (
+    <PortalLoginPage
+      title="Staff sign in"
+      description="Restricted access for ShopSphere operations staff."
+      buttonLabel="Sign in to staff portal"
+      deniedMessage="This account is not assigned a staff role. If you are an administrator, use the administrator sign-in portal."
+      allowedRoles={staffRoles}
+      alternatePath="/admin/login"
+      alternateLabel="Administrator sign in"
+    />
   );
 }
 

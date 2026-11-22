@@ -87,6 +87,19 @@ export type Database = {
             | "delivery_staff";
         }
       >;
+      orders: TableDefinition<
+        {
+          id: string;
+          order_number: string;
+          user_id: string;
+          status: string;
+          currency: string;
+          total: number;
+          created_at: string;
+        },
+        never,
+        { status?: string }
+      >;
       categories: TableDefinition<
         {
           id: string;
@@ -383,6 +396,10 @@ export type Database = {
       };
       get_admin_dashboard: {
         Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      admin_update_order_status: {
+        Args: { p_order_id: string; p_status: string };
         Returns: Json;
       };
       get_my_order: {
