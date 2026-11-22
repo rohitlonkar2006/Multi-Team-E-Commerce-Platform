@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://shopsphere-api.vercel.app/api/:path*"
+      "destination": "https://multi-team-ecommerce-platform.vercel.app/api/:path*"
     },
     {
       "source": "/(.*)",
