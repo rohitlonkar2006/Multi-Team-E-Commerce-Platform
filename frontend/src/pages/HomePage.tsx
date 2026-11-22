@@ -53,7 +53,7 @@ function CategoryTile({
   imageUrl?: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const source = imageUrl || categoryImageBySlug[category.slug];
+  const source = category.image_url || imageUrl || categoryImageBySlug[category.slug];
 
   return (
     <Link

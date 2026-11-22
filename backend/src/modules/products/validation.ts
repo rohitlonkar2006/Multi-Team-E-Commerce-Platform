@@ -52,6 +52,10 @@ export const categoryCreateSchema = z
     name: z.string().trim().min(1).max(100),
     slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     description: z.string().trim().max(500).default(""),
+    imageUrl: z.union([
+      z.literal(""),
+      z.string().trim().url().max(2048),
+    ]).default("").transform((value) => value || null),
     isActive: z.boolean().default(true),
   })
   .strict();

@@ -3,6 +3,7 @@ export type Category = {
   name: string;
   slug: string;
   description: string;
+  image_url: string | null;
   is_active: boolean;
 };
 

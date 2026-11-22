@@ -3,6 +3,7 @@ import { addressSchema } from "../src/modules/users/validation.js";
 import {
   productCreateSchema,
   productListQuerySchema,
+  categoryCreateSchema,
 } from "../src/modules/products/validation.js";
 import {
   cartItemSchema,
@@ -11,6 +12,24 @@ import {
 } from "../src/modules/checkout/validation.js";
 
 describe("user and product validation", () => {
+  it("accepts category image URLs and an empty image value", () => {
+    const withImage = categoryCreateSchema.safeParse({
+      name: "Home & Living",
+      slug: "home-living",
+      imageUrl: "https://images.example.com/home.jpg",
+    });
+    const withoutImage = categoryCreateSchema.safeParse({
+      name: "Technology",
+      slug: "technology",
+      imageUrl: "",
+    });
+
+    expect(withImage.success).toBe(true);
+    expect(withoutImage.success).toBe(true);
+    if (withImage.success) expect(withImage.data.imageUrl).toBe("https://images.example.com/home.jpg");
+    if (withoutImage.success) expect(withoutImage.data.imageUrl).toBeNull();
+  });
+
   it("accepts zero price and stock and applies safe product defaults", () => {
     const result = productCreateSchema.safeParse({
       sku: "SAMPLE-001",

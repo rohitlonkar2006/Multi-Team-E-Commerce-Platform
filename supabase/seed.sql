@@ -1,16 +1,19 @@
-insert into public.categories (name, slug, description)
+insert into public.categories (name, slug, description, image_url)
 values
-  ('Home & Living', 'home-living', 'Everyday essentials for your home.'),
-  ('Technology', 'technology', 'Useful technology for work and play.'),
-  ('Fashion', 'fashion', 'Thoughtful picks for your wardrobe.'),
-  ('Kitchen & Dining', 'kitchen-dining', 'Practical pieces for cooking and sharing meals.'),
-  ('Beauty & Care', 'beauty-care', 'Simple daily care and personal essentials.'),
-  ('Books & Stationery', 'books-stationery', 'Reading, writing, and creative desk supplies.'),
-  ('Outdoor & Fitness', 'outdoor-fitness', 'Useful gear for movement and time outdoors.'),
-  ('Bags & Accessories', 'bags-accessories', 'Handy carry goods and everyday accessories.'),
-  ('Furniture', 'furniture', 'Well-considered furniture for compact modern spaces.'),
-  ('Photography & Audio', 'photography-audio', 'Tools for capturing and sharing sound and images.')
-on conflict (slug) do nothing;
+  ('Home & Living', 'home-living', 'Everyday essentials for your home.', 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=900&q=80'),
+  ('Technology', 'technology', 'Useful technology for work and play.', 'https://images.pexels.com/photos/7974/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=900'),
+  ('Fashion', 'fashion', 'Thoughtful picks for your wardrobe.', 'https://images.pexels.com/photos/934070/pexels-photo-934070.jpeg?auto=compress&cs=tinysrgb&w=900'),
+  ('Kitchen & Dining', 'kitchen-dining', 'Practical pieces for cooking and sharing meals.', 'https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?auto=format&fit=crop&w=900&q=80'),
+  ('Beauty & Care', 'beauty-care', 'Simple daily care and personal essentials.', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80'),
+  ('Books & Stationery', 'books-stationery', 'Reading, writing, and creative desk supplies.', 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=900&q=80'),
+  ('Outdoor & Fitness', 'outdoor-fitness', 'Useful gear for movement and time outdoors.', 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80'),
+  ('Bags & Accessories', 'bags-accessories', 'Handy carry goods and everyday accessories.', 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=80'),
+  ('Furniture', 'furniture', 'Well-considered furniture for compact modern spaces.', 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80'),
+  ('Photography & Audio', 'photography-audio', 'Tools for capturing and sharing sound and images.', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80')
+on conflict (slug) do update
+set
+  description = excluded.description,
+  image_url = coalesce(public.categories.image_url, excluded.image_url);
 
 with catalog_categories (
   category_slug,
@@ -187,7 +190,7 @@ with catalog_categories (
       'bags-accessories', 'ACC', 499::numeric, 400::numeric,
       'A handy accessory for everyday carry.',
       array[
-        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=800&q=80',
         'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
@@ -316,7 +319,7 @@ from (
     ('HOME-005', 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80'),
     ('HOME-006', 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=800&q=80'),
     ('TECH-001', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'),
-    ('ACC-001', 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=800&q=80'),
+    ('ACC-001', 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=800&q=80'),
     ('FASH-003', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80'),
     ('HOME-MUG-001', 'https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?auto=format&fit=crop&w=800&q=80'),
     ('HOME-BASKET-001', 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80'),

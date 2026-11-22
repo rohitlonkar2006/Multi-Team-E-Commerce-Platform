@@ -380,7 +380,7 @@ export const uploadImage: RequestHandler = async (request, response) => {
 export const listCategories: RequestHandler = async (_request, response) => {
   const { data, error } = await getSupabaseClient()
     .from("categories")
-    .select("id,name,slug,description,is_active,created_at,updated_at")
+    .select("id,name,slug,description,image_url,is_active,created_at,updated_at")
     .eq("is_active", true)
     .order("name");
   if (error) {
@@ -393,7 +393,7 @@ export const listCategories: RequestHandler = async (_request, response) => {
 export const listAdminCategories: RequestHandler = async (request, response) => {
   const { data, error } = await request
     .supabase!.from("categories")
-    .select("id,name,slug,description,is_active,created_at,updated_at")
+    .select("id,name,slug,description,image_url,is_active,created_at,updated_at")
     .order("name");
   if (error) {
     sendDatabaseError(response, error);
@@ -416,9 +416,10 @@ export const createCategory: RequestHandler = async (request, response) => {
       name: value.name,
       slug: value.slug,
       description: value.description,
+      image_url: value.imageUrl,
       is_active: value.isActive,
     })
-    .select("id,name,slug,description,is_active,created_at,updated_at")
+    .select("id,name,slug,description,image_url,is_active,created_at,updated_at")
     .single();
   if (error) {
     sendDatabaseError(response, error);
@@ -446,10 +447,11 @@ export const updateCategory: RequestHandler = async (request, response) => {
       ...(value.name !== undefined ? { name: value.name } : {}),
       ...(value.slug !== undefined ? { slug: value.slug } : {}),
       ...(value.description !== undefined ? { description: value.description } : {}),
+      ...(value.imageUrl !== undefined ? { image_url: value.imageUrl } : {}),
       ...(value.isActive !== undefined ? { is_active: value.isActive } : {}),
     })
     .eq("id", id.data)
-    .select("id,name,slug,description,is_active,created_at,updated_at")
+    .select("id,name,slug,description,image_url,is_active,created_at,updated_at")
     .maybeSingle();
   if (error) {
     sendDatabaseError(response, error);

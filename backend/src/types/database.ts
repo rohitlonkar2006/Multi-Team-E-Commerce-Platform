@@ -106,6 +106,7 @@ export type Database = {
           name: string;
           slug: string;
           description: string;
+          image_url: string | null;
           is_active: boolean;
         } & Timestamped,
         {
@@ -113,6 +114,7 @@ export type Database = {
           name: string;
           slug: string;
           description?: string;
+          image_url?: string | null;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -121,6 +123,7 @@ export type Database = {
           name?: string;
           slug?: string;
           description?: string;
+          image_url?: string | null;
           is_active?: boolean;
           updated_at?: string;
         }

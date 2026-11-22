@@ -52,7 +52,13 @@ The storefront checks API status when it loads and avoids continuous health poll
    - `supabase/migrations/20261121200000_cart_checkout_orders.sql`
    - `supabase/migrations/20261122000000_delivery_operations.sql`
    - `supabase/migrations/20261123000000_admin_operations.sql` (run after creating the admin Auth user below)
-   - `supabase/migrations/20261123100000_fix_admin_dashboard_analytics.sql` (run last)
+   - `supabase/migrations/20261123100000_fix_admin_dashboard_analytics.sql`
+   - `supabase/migrations/20261124110000_correct_seeded_product_images.sql`
+   - `supabase/migrations/20261124120000_enable_staff_workspaces.sql`
+   - `supabase/migrations/20261124130000_backfill_delivery_staff_profiles.sql`
+   - `supabase/migrations/20261124140000_admin_product_delete.sql`
+   - `supabase/migrations/20261124150000_category_images.sql`
+   - `supabase/migrations/20261124160000_fix_canvas_market_tote_image.sql` (run last)
    After the initial and user/product schema migrations are present, run `supabase/seed.sql` to add 10 categories and 100 image-backed sample products. Sample inventory is set only for newly inserted products; rerunning the seed does not restock existing products.
    The configured project already exposes the profile/product/user-product schema, so do not rerun those non-idempotent migrations. The cart/order migration can be rerun after a partial application; apply the delivery migration after it and verify its tables/functions in Supabase.
 3. Copy the project URL and **publishable** key from the Supabase project settings into both local env files:

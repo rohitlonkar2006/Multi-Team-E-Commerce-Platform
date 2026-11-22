@@ -12,6 +12,10 @@ const categorySchema = z.object({
   name: z.string().trim().min(1).max(100),
   slug: z.string().trim().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   description: z.string().trim().max(500),
+  imageUrl: z.union([
+    z.literal(""),
+    z.string().trim().url("Enter a valid image URL"),
+  ]).optional(),
 });
 type CategoryValues = z.infer<typeof categorySchema>;
 
@@ -22,14 +26,14 @@ export function AdminCategoriesPage() {
   const [editing, setEditing] = useState<Category | null>(null);
   const form = useForm<CategoryValues>({
     resolver: zodResolver(categorySchema),
-    defaultValues: { name: "", slug: "", description: "" },
+    defaultValues: { name: "", slug: "", description: "", imageUrl: "" },
   });
   const resetForm = form.reset;
   useEffect(() => {
     resetForm(
       editing
-        ? { name: editing.name, slug: editing.slug, description: editing.description }
-        : { name: "", slug: "", description: "" },
+        ? { name: editing.name, slug: editing.slug, description: editing.description, imageUrl: editing.image_url ?? "" }
+        : { name: "", slug: "", description: "", imageUrl: "" },
     );
   }, [editing, resetForm]);
 
@@ -100,6 +104,15 @@ export function AdminCategoriesPage() {
               Description
               <textarea className="min-h-20 rounded-xl border border-border bg-background p-3 font-normal" {...form.register("description")} />
             </label>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Image URL
+              <input
+                type="url"
+                className="h-10 rounded-xl border border-border bg-background px-3 font-normal"
+                placeholder="https://images.example.com/category.jpg"
+                {...form.register("imageUrl")}
+              />
+            </label>
             {Object.keys(form.formState.errors).length > 0 && (
               <p className="text-sm text-red-700">Check the category name and lowercase URL slug.</p>
             )}
@@ -128,11 +141,22 @@ export function AdminCategoriesPage() {
             <ul className="mt-4 divide-y divide-border">
               {categories.map((category) => (
                 <li key={category.id} className="flex items-center justify-between gap-4 py-4">
-                  <div>
-                    <p className="font-medium">{category.name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      /{category.slug} · {category.is_active ? "Active" : "Hidden"}
-                    </p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt=""
+                        className="size-14 shrink-0 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="size-14 shrink-0 rounded-xl bg-secondary" />
+                    )}
+                    <div>
+                      <p className="font-medium">{category.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        /{category.slug} · {category.is_active ? "Active" : "Hidden"}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => setEditing(category)}>Edit</Button>
