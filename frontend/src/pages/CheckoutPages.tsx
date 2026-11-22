@@ -151,7 +151,7 @@ export function CartPage() {
   const addresses = addressesQuery.data?.addresses ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 lg:px-10 lg:py-14">
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-14">
       <p className="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Your bag</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">Cart & checkout</h1>
 
@@ -185,11 +185,11 @@ export function CartPage() {
           <Button asChild className="mt-5"><Link to="/shop">Browse products</Link></Button>
         </section>
       ) : (
-        <div className="mt-8 grid items-start gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="mt-6 grid items-start gap-5 sm:mt-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-6">
           <section className="grid gap-3">
             {cart.items.map((item) => (
-              <article key={item.id} className="flex gap-4 rounded-2xl border border-border bg-white p-4">
-                <Link to={`/products/${item.slug}`} className="size-24 shrink-0 overflow-hidden rounded-xl bg-background">
+              <article key={item.id} className="flex gap-3 rounded-2xl border border-border bg-white p-3 sm:gap-4 sm:p-4">
+                <Link to={`/products/${item.slug}`} className="size-20 shrink-0 overflow-hidden rounded-xl bg-background sm:size-24">
                   {item.image_url ? (
                     <img src={item.image_url} alt={item.name} className="size-full object-cover" />
                   ) : (
@@ -202,7 +202,7 @@ export function CartPage() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     {item.available_stock > 0 ? `${item.available_stock} available` : "Out of stock"}
                   </p>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-3 flex items-center gap-1.5 sm:gap-2">
                     <Button
                       size="icon"
                       variant="outline"
@@ -225,7 +225,7 @@ export function CartPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="ml-auto"
+                      className="ml-auto px-2 sm:px-4"
                       aria-label={`Remove ${item.name}`}
                       disabled={cartMutation.isPending}
                       onClick={() => cartMutation.mutate({ itemId: item.id, remove: true })}
@@ -242,9 +242,15 @@ export function CartPage() {
             {cartMutation.error instanceof Error && <PageError message={cartMutation.error.message} />}
           </section>
 
-          <section className="grid gap-5 rounded-2xl border border-border bg-white p-5">
+          <section className="grid gap-0 overflow-hidden rounded-2xl border border-border bg-white shadow-sm lg:sticky lg:top-24">
+            <div className="border-b border-border px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Checkout</p>
+              <h2 className="mt-1 text-lg font-semibold">Complete your order</h2>
+            </div>
+
+            <div className="grid gap-5 p-5">
             <div>
-              <h2 className="font-semibold">Delivery address</h2>
+              <h3 className="font-semibold">Delivery address</h3>
               {addressesQuery.isPending ? (
                 <p className="mt-2 text-sm text-muted-foreground">Loading addresses...</p>
               ) : addressesQuery.error instanceof Error ? (
@@ -253,7 +259,7 @@ export function CartPage() {
                 <label className="mt-3 grid gap-1.5 text-sm">
                   <span className="sr-only">Select delivery address</span>
                   <select
-                    className="min-h-11 rounded-xl border border-border bg-background px-3"
+                    className="min-h-11 w-full rounded-xl border border-border bg-background px-3 text-sm"
                     value={addressId}
                     onChange={(event) => setAddressId(event.target.value)}
                   >
@@ -277,11 +283,11 @@ export function CartPage() {
             </div>
 
             <div>
-              <h2 className="font-semibold">Payment</h2>
+              <h3 className="font-semibold">Payment</h3>
               <label className="mt-3 grid gap-1.5 text-sm">
                 <span>Method</span>
                 <select
-                  className="min-h-11 rounded-xl border border-border bg-background px-3"
+                  className="min-h-11 w-full rounded-xl border border-border bg-background px-3"
                   value={paymentMethod}
                   onChange={(event) =>
                     setPaymentMethod(event.target.value as typeof paymentMethod)
@@ -301,6 +307,7 @@ export function CartPage() {
                         key={outcome}
                         type="button"
                         size="sm"
+                        className="px-2"
                         variant={simulatedResult === outcome ? "default" : "outline"}
                         aria-pressed={simulatedResult === outcome}
                         onClick={() => setSimulatedResult(outcome)}
@@ -316,16 +323,16 @@ export function CartPage() {
               )}
             </div>
 
-            <div className="border-t border-border pt-4">
-              <div className="flex justify-between text-sm">
-                <span>Subtotal</span>
-                <span>{formatPrice(cart.subtotal, cart.items[0]?.currency ?? "INR")}</span>
+            <div className="rounded-xl bg-secondary/60 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm font-medium">Subtotal</span>
+                <span className="text-lg font-semibold">{formatPrice(cart.subtotal, cart.items[0]?.currency ?? "INR")}</span>
               </div>
               <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                Tax and shipping are currently zero; no pricing policy has been configured.
+                Tax and shipping are currently zero.
               </p>
               <Button
-                className="mt-4 w-full"
+                className="mt-4 min-h-11 w-full"
                 disabled={
                   checkoutMutation.isPending ||
                   !addressId ||
@@ -339,6 +346,7 @@ export function CartPage() {
               {checkoutMutation.error instanceof Error && (
                 <div className="mt-3"><PageError message={checkoutMutation.error.message} /></div>
               )}
+            </div>
             </div>
           </section>
         </div>
