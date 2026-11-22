@@ -1,8 +1,11 @@
 import cors from "cors";
+import { createRequire } from "node:module";
 import express, { type ErrorRequestHandler } from "express";
-import * as helmet from "helmet";
+import type { RequestHandler } from "express";
+import type { HelmetOptions } from "helmet";
 import { rateLimit } from "express-rate-limit";
 import { MulterError } from "multer";
+import "helmet";
 import { env } from "./config/env.js";
 import { supabase } from "./lib/supabase.js";
 import { ApiError } from "./lib/api-error.js";
@@ -24,9 +27,13 @@ import {
 } from "./modules/delivery/routes.js";
 
 export const app = express();
+// Make the dynamic require visible to Vercel's dependency tracer.
+const helmetMiddleware = createRequire(import.meta.url)("helmet") as (
+  options?: Readonly<HelmetOptions>,
+) => RequestHandler;
 
 app.disable("x-powered-by");
-app.use(helmet.default());
+app.use(helmetMiddleware());
 app.use(
   cors({
     origin: (origin, callback) => {
