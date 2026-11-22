@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Pencil, Plus, Search, X } from "lucide-react";
+import { ImagePlus, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -57,6 +57,7 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
   const [editing, setEditing] = useState<Product | null>(null);
   const [imageFiles, setImageFiles] = useState<Record<string, File | undefined>>({});
   const [stockErrors, setStockErrors] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState<string | null>(null);
   const form = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: blankProduct,
@@ -72,6 +73,21 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
     queryFn: () => apiRequest<{ categories: Category[] }>("/admin/categories", token),
     enabled: !inventoryOnly,
   });
+
+  function updateCachedProduct(
+    productId: string,
+    changes: Partial<Product>,
+  ) {
+    queryClient.setQueryData<{ products: Product[] }>(["admin-products"], (current) =>
+      current
+        ? {
+            products: current.products.map((product) =>
+              product.id === productId ? { ...product, ...changes } : product,
+            ),
+          }
+        : current,
+    );
+  }
 
   useEffect(() => {
     if (!editing) {
@@ -99,41 +115,86 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
           body: JSON.stringify({ ...values, categoryId: values.categoryId || null }),
         },
       ),
-    onSuccess: async () => {
+    onSuccess: ({ product }) => {
       setEditing(null);
       resetForm(blankProduct);
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      setNotice("Product saved.");
+      queryClient.setQueryData<{ products: Product[] }>(["admin-products"], (current) => {
+        if (!current) return current;
+        const exists = current.products.some((item) => item.id === product.id);
+        return {
+          products: exists
+            ? current.products.map((item) =>
+                item.id === product.id
+                  ? { ...item, ...product, categories: item.categories }
+                  : item,
+              )
+            : [product, ...current.products],
+        };
+      });
+      void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
   const removeProduct = useMutation({
     mutationFn: (id: string) =>
       apiRequest(`/admin/products/${id}`, token, { method: "DELETE" }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
+    onSuccess: (_result, productId) => {
+      updateCachedProduct(productId, { is_active: false });
+      setNotice("Product removed from the shop.");
+      void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
   const restoreProduct = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/admin/products/${id}`, token, {
+      apiRequest<{ product: Product }>(`/admin/products/${id}`, token, {
         method: "PUT",
         body: JSON.stringify({ isActive: true }),
       }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
+    onSuccess: ({ product }) => {
+      updateCachedProduct(product.id, { is_active: true });
+      setNotice("Product restored to the shop.");
+      void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
   const updateStock = useMutation({
     mutationFn: ({ id, quantity }: { id: string; quantity: number }) =>
-      apiRequest(`/admin/products/${id}/inventory`, token, {
+      apiRequest<{ inventory: { quantity: number } }>(`/admin/products/${id}/inventory`, token, {
         method: "PATCH",
         body: JSON.stringify({ quantity }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-products"] }),
+    onSuccess: (result, { id }) => {
+      updateCachedProduct(id, { quantity: result.inventory.quantity });
+      void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+    },
+  });
+
+  const permanentlyDeleteProduct = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest<{ deleted: boolean; warning?: string }>(
+        `/admin/products/${id}/permanent`,
+        token,
+        { method: "DELETE" },
+      ),
+    onSuccess: (result, productId) => {
+      queryClient.setQueryData<{ products: Product[] }>(["admin-products"], (current) =>
+        current
+          ? { products: current.products.filter((product) => product.id !== productId) }
+          : current,
+      );
+      setNotice(result.warning ?? "Product permanently deleted.");
+      void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
   });
 
   const uploadImage = useMutation({
@@ -148,10 +209,12 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
         { method: "POST", body: formData },
       );
     },
-    onSuccess: async () => {
+    onSuccess: ({ imageUrl }, product) => {
       setImageFiles({});
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      updateCachedProduct(product.id, { image_url: imageUrl });
+      setNotice("Product image updated.");
+      void queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
@@ -166,6 +229,7 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
     removeProduct.error,
     restoreProduct.error,
     updateStock.error,
+    permanentlyDeleteProduct.error,
     uploadImage.error,
   ].find((candidate): candidate is Error => candidate instanceof Error);
 
@@ -196,6 +260,7 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
       </div>
 
       {error && <div className="mt-6"><ErrorNotice message={error.message} /></div>}
+      {notice && <p role="status" className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
 
       {!inventoryOnly && <section id="product-form" className="mt-7 rounded-2xl border border-border bg-white p-5 sm:p-7">
         <div className="flex items-start justify-between gap-4">
@@ -348,7 +413,7 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
                   </div>
                 </div>
                 {!inventoryOnly && (
-                  <div className="flex gap-2 sm:justify-end">
+                  <div className="flex flex-wrap gap-2 sm:justify-end">
                     <Button size="sm" variant="outline" onClick={() => setEditing(product)}>
                       <Pencil size={14} /> Edit
                     </Button>
@@ -356,24 +421,59 @@ export function AdminProductsPage({ inventoryOnly = false }: { inventoryOnly?: b
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={removeProduct.isPending}
+                        disabled={
+                          removeProduct.isPending &&
+                          removeProduct.variables === product.id
+                        }
                         onClick={() => {
                           if (window.confirm(`Hide "${product.name}" from the shop?`)) {
+                            setNotice(null);
                             removeProduct.mutate(product.id);
                           }
                         }}
                       >
-                        Hide
+                        Remove from shop
                       </Button>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={restoreProduct.isPending}
-                        onClick={() => restoreProduct.mutate(product.id)}
-                      >
-                        Show
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={
+                            restoreProduct.isPending &&
+                            restoreProduct.variables === product.id
+                          }
+                          onClick={() => {
+                            setNotice(null);
+                            restoreProduct.mutate(product.id);
+                          }}
+                        >
+                          Restore
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-700 hover:bg-red-50 hover:text-red-800"
+                          disabled={
+                            permanentlyDeleteProduct.isPending &&
+                            permanentlyDeleteProduct.variables === product.id
+                          }
+                          onClick={() => {
+                            if (window.confirm(
+                              `Permanently delete "${product.name}"? This also removes its inventory, images, wishlist links, and stock history. Order history keeps its saved item details. Products still in customer carts cannot be deleted.`,
+                            )) {
+                              setNotice(null);
+                              permanentlyDeleteProduct.mutate(product.id);
+                            }
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          {permanentlyDeleteProduct.isPending &&
+                          permanentlyDeleteProduct.variables === product.id
+                            ? "Deleting..."
+                            : "Delete permanently"}
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}

@@ -75,18 +75,19 @@ export async function listActiveProducts(filters: ProductListQuery) {
     .range(from, from + filters.pageSize - 1);
   if (error) return { data: null, error };
 
-  const productsWithImages = await applyPrimaryProductImages(client, data ?? []);
-  if (productsWithImages.error) {
-    return { data: null, error: productsWithImages.error };
-  }
-  const productIds = productsWithImages.data.map((product) => product.id);
-  const availabilityResult =
+  const productIds = (data ?? []).map((product) => product.id);
+  const [productsWithImages, availabilityResult] = await Promise.all([
+    applyPrimaryProductImages(client, data ?? []),
     productIds.length > 0
-      ? await client
+      ? client
           .from("product_stock_status")
           .select("product_id,in_stock")
           .in("product_id", productIds)
-      : { data: [], error: null };
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (productsWithImages.error) {
+    return { data: null, error: productsWithImages.error };
+  }
   if (availabilityResult.error) {
     return { data: null, error: availabilityResult.error };
   }
@@ -126,14 +127,16 @@ export async function listTrendingProducts() {
     .in("id", productIds);
   if (error) return { data: null, error };
 
-  const productsWithImages = await applyPrimaryProductImages(client, data ?? []);
+  const [productsWithImages, availabilityResult] = await Promise.all([
+    applyPrimaryProductImages(client, data ?? []),
+    client
+      .from("product_stock_status")
+      .select("product_id,in_stock")
+      .in("product_id", productIds),
+  ]);
   if (productsWithImages.error) {
     return { data: null, error: productsWithImages.error };
   }
-  const availabilityResult = await client
-    .from("product_stock_status")
-    .select("product_id,in_stock")
-    .in("product_id", productIds);
   if (availabilityResult.error) {
     return { data: null, error: availabilityResult.error };
   }
@@ -196,18 +199,19 @@ export async function listAdminProducts(client: SupabaseClient<Database>) {
     .order("created_at", { ascending: false });
   if (error) return { data: null, error };
 
-  const productsWithImages = await applyPrimaryProductImages(client, data ?? []);
-  if (productsWithImages.error) {
-    return { data: null, error: productsWithImages.error };
-  }
-  const productIds = productsWithImages.data.map((product) => product.id);
-  const inventoryResult =
+  const productIds = (data ?? []).map((product) => product.id);
+  const [productsWithImages, inventoryResult] = await Promise.all([
+    applyPrimaryProductImages(client, data ?? []),
     productIds.length > 0
-      ? await client
+      ? client
           .from("inventory")
           .select("product_id,quantity")
           .in("product_id", productIds)
-      : { data: [], error: null };
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (productsWithImages.error) {
+    return { data: null, error: productsWithImages.error };
+  }
   if (inventoryResult.error) {
     return { data: null, error: inventoryResult.error };
   }

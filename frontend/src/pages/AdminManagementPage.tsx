@@ -77,11 +77,23 @@ export function AdminOrdersPage({ staffMode = false }: { staffMode?: boolean }) 
   });
   const updateOrder = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiRequest(`/admin/orders/${id}`, session?.access_token, {
+      apiRequest<{ order: { id: string; status: string } }>(`/admin/orders/${id}`, session?.access_token, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-orders"] }),
+    onSuccess: ({ order }) => {
+      client.setQueryData<{ orders: AdminOrder[] }>(["admin-orders"], (current) =>
+        current
+          ? {
+              orders: current.orders.map((item) =>
+                item.id === order.id ? { ...item, status: order.status } : item,
+              ),
+            }
+          : current,
+      );
+      void client.invalidateQueries({ queryKey: ["admin-orders"] });
+      void client.invalidateQueries({ queryKey: ["admin-analytics"] });
+    },
   });
   const orders = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -181,7 +193,22 @@ export function AdminUsersPage() {
         method: "PATCH",
         body: JSON.stringify({ role, enabled }),
       }),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["admin-users"] }),
+    onSuccess: (_data, { userId, role, enabled }) => {
+      client.setQueryData<{ users: AdminUser[] }>(["admin-users"], (current) =>
+        current
+          ? {
+              users: current.users.map((user) => {
+                if (user.user_id !== userId) return user;
+                const roles = enabled
+                  ? [...new Set([...user.roles, role])]
+                  : user.roles.filter((existingRole) => existingRole !== role);
+                return { ...user, roles };
+              }),
+            }
+          : current,
+      );
+      void client.invalidateQueries({ queryKey: ["admin-users"] });
+    },
   });
   const users = usersQuery.data?.users ?? [];
   const visibleUsers = view === "customers"

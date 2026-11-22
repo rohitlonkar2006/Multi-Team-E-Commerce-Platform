@@ -15,6 +15,7 @@ import {
   listCategories,
   listProducts,
   listTrending,
+  permanentlyDeleteProduct,
   updateCategory,
   updateInventory,
   updateProduct,
@@ -52,6 +53,11 @@ adminProductsRoutes.get(
 adminProductsRoutes.post("/", requireAdmin, createProduct);
 adminProductsRoutes.put("/:id", requireAdmin, updateProduct);
 adminProductsRoutes.delete("/:id", requireAdmin, deleteProduct);
+adminProductsRoutes.delete(
+  "/:id/permanent",
+  requireAdmin,
+  permanentlyDeleteProduct,
+);
 adminProductsRoutes.patch(
   "/:id/inventory",
   requireRoles(

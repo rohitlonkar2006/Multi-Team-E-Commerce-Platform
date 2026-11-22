@@ -402,6 +402,10 @@ export type Database = {
         Args: { p_order_id: string; p_status: string };
         Returns: Json;
       };
+      admin_delete_product: {
+        Args: { p_product_id: string };
+        Returns: string[];
+      };
       get_my_order: {
         Args: { p_order_id: string };
         Returns: Json;

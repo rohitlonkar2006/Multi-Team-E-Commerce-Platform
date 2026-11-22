@@ -254,6 +254,55 @@ export const deleteProduct: RequestHandler = async (request, response) => {
   response.status(204).end();
 };
 
+export const permanentlyDeleteProduct: RequestHandler = async (
+  request,
+  response,
+) => {
+  const id = uuidSchema.safeParse(request.params.id);
+  if (!id.success) {
+    validationError(response, id.error.flatten());
+    return;
+  }
+
+  const { data: imagePaths, error } = await request.supabase!.rpc(
+    "admin_delete_product",
+    { p_product_id: id.data },
+  );
+  if (error) {
+    if (
+      error.code === "P0001" &&
+      [
+        "Remove the product from the shop before deleting it",
+        "Remove the product from customer carts before deleting it",
+      ].includes(error.message)
+    ) {
+      response.status(409).json({ error: error.message });
+      return;
+    }
+    sendDatabaseError(response, error);
+    return;
+  }
+
+  if (imagePaths.length) {
+    const { error: storageError } = await request.supabase!.storage
+      .from("product-images")
+      .remove(imagePaths);
+    if (storageError) {
+      console.error("Could not remove images for a permanently deleted product.", {
+        productId: id.data,
+        error: storageError.message,
+      });
+      response.json({
+        deleted: true,
+        warning: "Product deleted, but its stored images could not be removed.",
+      });
+      return;
+    }
+  }
+
+  response.json({ deleted: true });
+};
+
 export const updateInventory: RequestHandler = async (request, response) => {
   const id = uuidSchema.safeParse(request.params.id);
   if (!id.success) {
