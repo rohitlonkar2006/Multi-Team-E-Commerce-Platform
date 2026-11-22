@@ -1,5 +1,5 @@
 import { Router } from "express";
-import rateLimit from "express-rate-limit";
+import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { getSupabaseClient } from "../../lib/supabase.js";
 import { sendDatabaseError } from "../../lib/api-error.js";
