@@ -1,9 +1,7 @@
 import cors from "cors";
-import { createRequire } from "node:module";
 import express, { type ErrorRequestHandler } from "express";
+import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
-import type { RequestHandler } from "express";
-import type { HelmetOptions } from "helmet";
 import { MulterError } from "multer";
 import { env } from "./config/env.js";
 import { supabase } from "./lib/supabase.js";
@@ -26,9 +24,6 @@ import {
 } from "./modules/delivery/routes.js";
 
 export const app = express();
-const helmet = createRequire(import.meta.url)("helmet") as (
-  options?: Readonly<HelmetOptions>,
-) => RequestHandler;
 
 app.disable("x-powered-by");
 app.use(helmet());
